@@ -354,7 +354,7 @@
 
         function loadLogisticsData() {
             // URL limpia y directa del CSV publicado en Google Sheets con proxy universal integrado (allorigins)
-            const rawCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+            const rawCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pubhtml';
             const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rawCsvUrl);
 
             Papa.parse(proxyUrl, {
