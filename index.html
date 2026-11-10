@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Operativo Logístico — Entrega de Turno</title>
-    <!-- PapaParse para lectura segura de CSV -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -352,25 +350,24 @@
             btn.innerHTML = body.classList.contains('light-theme') ? '☀️ Modo Día' : '🌙 Modo Noche';
         }
 
-        function loadLogisticsData() {
-            // URL limpia corregida de Google Sheets en formato CSV
-            const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+        async function loadLogisticsData() {
+            // Usamos la API pública de OpenSheet en JSON para evitar bloqueos CORS definitivamente
+            const spreadsheetId = '2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G';
+            const url = `https://opensheet.elk.sh/${spreadsheetId}/10%20MARTES`;
 
-            Papa.parse(csvUrl, {
-                download: true,
-                header: false,
-                complete: function(results) {
-                    if (results.data && results.data.length > 0) {
-                        parseCSVAndRender(results.data);
-                    } else {
-                        showError("No se encontraron registros en la hoja.");
-                    }
-                },
-                error: function(err) {
-                    console.error("Error PapaParse:", err);
-                    showError("Error de conexión al cargar el CSV.");
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    parseJsonData(data);
+                } else {
+                    showError("No se encontraron registros en la hoja.");
                 }
-            });
+            } catch (error) {
+                console.error(error);
+                showError("Error de conexión al cargar la hoja.");
+            }
         }
 
         function showError(msg) {
@@ -378,25 +375,23 @@
             document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
         }
 
-        function parseCSVAndRender(rows) {
+        function parseJsonData(rows) {
             allTripsData = [];
             const datesSet = new Set();
 
-            for (let i = 2; i < rows.length; i++) {
-                const cols = rows[i];
-                if (!cols || cols.length < 14) continue;
+            rows.forEach(row => {
+                // Leemos directamente por los nombres exactos de tus columnas en el Excel
+                const fecha = row['FECHA'] ? row['FECHA'].trim() : '';
+                const observacion = row['OBSERVACIONES'] ? row['OBSERVACIONES'].trim() : '-';
+                const origen = row['ORIGEN'] ? row['ORIGEN'].trim() : '';
+                const destino = row['DESTINO'] ? row['DESTINO'].trim() : '';
+                const vehiculo = row['TIPO DE VEHÍCULO'] ? row['TIPO DE VEHÍCULO'].trim() : '';
+                const eco = row['ECO TRACTO'] ? row['ECO TRACTO'].trim() : '';
+                const operador = row['NOMBRE DEL OPERADOR'] ? row['NOMBRE DEL OPERADOR'].trim() : '';
 
-                const fecha = cols[0] ? cols[0].trim() : '';          // Columna A (FECHA)
-                const observacion = cols[5] ? cols[5].trim() : '-';   // Columna F (OBSERVACIONES)
-                const origen = cols[6] ? cols[6].trim() : '';         // Columna G (ORIGEN)
-                const destino = cols[7] ? cols[7].trim() : '';        // Columna H (DESTINO)
-                const vehiculo = cols[8] ? cols[8].trim() : '';       // Columna I (TIPO DE VEHÍCULO)
-                const eco = cols[12] ? cols[12].trim() : '';          // Columna M (ECO TRACTO)
-                const operador = cols[13] ? cols[13].trim() : '';     // Columna N (NOMBRE DEL OPERADOR)
+                if (!destino || destino === '') return;
 
-                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
-
-                if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
+                if (fecha && fecha !== '-') {
                     datesSet.add(fecha);
                 }
 
@@ -417,7 +412,7 @@
                     observaciones: observacion && observacion !== '' ? observacion : '-',
                     status: status
                 });
-            }
+            });
 
             populateDateDropdown(Array.from(datesSet));
             applyDateFilter();
