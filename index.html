@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Logístico en Vivo — 10 Martes</title>
-    <!-- Librería PapaParse para lectura robusta de CSV -->
+    <!-- PapaParse para procesar correctamente las comillas y comas del CSV de Google -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
@@ -290,7 +290,7 @@
         <div class="loading">Conectando con Google Sheets...</div>
     </div>
 
-    <!-- SCRIPT DE CONEXIÓN PAPAPARSE -->
+    <!-- SCRIPT DE CONEXIÓN ROBUSTA CON PAPAPARSE -->
     <script>
         function toggleTheme() {
             const body = document.body;
@@ -300,12 +300,13 @@
         }
 
         function loadLogisticsData() {
-            const rawCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+            const rawCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
             const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rawCsvUrl);
 
             Papa.parse(proxyUrl, {
                 download: true,
                 header: false,
+                skipEmptyLines: true,
                 complete: function(results) {
                     if (results.data && results.data.length > 0) {
                         parseCSVAndRender(results.data);
@@ -328,6 +329,7 @@
         function parseCSVAndRender(rows) {
             const trips = [];
 
+            // Empezamos desde la fila 2 (índice 2) para omitir títulos, usando columnas exactas
             for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
                 if (!cols || cols.length < 13) continue;
@@ -335,11 +337,12 @@
                 const origen = cols[5] ? cols[5].trim() : '';      // Columna F
                 const destino = cols[6] ? cols[6].trim() : '';    // Columna G
                 const vehiculo = cols[7] ? cols[7].trim() : '';   // Columna H
-                const eco = cols[11] ? cols[11].trim() : '';       // Columna L
-                const operador = cols[12] ? cols[12].trim() : ''; // Columna M
+                const eco = cols[11] ? cols[11].trim() : '';       // Columna L (Eco Tracto)
+                const operador = cols[12] ? cols[12].trim() : ''; // Columna M (Operador)
                 const observaciones = cols[4] ? cols[4].trim() : '-'; // Columna E
 
-                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
+                // Filtro de seguridad estricto anti-basura y anti-extensiones
+                if (!destino || destino === '' || destino.toLowerCase().includes('destino') || destino.includes('{') || destino.includes('ppConfig')) continue;
 
                 const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
 
