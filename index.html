@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Operativo Logístico — Entrega de Turno</title>
-    <!-- PapaParse para lectura de CSV -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -352,24 +350,23 @@
             btn.innerHTML = body.classList.contains('light-theme') ? '☀️ Modo Día' : '🌙 Modo Noche';
         }
 
-        function loadLogisticsData() {
-            // Usamos la API de OpenSheet en JSON para evitar bloqueos CORS por completo
+        async function loadLogisticsData() {
             const spreadsheetId = '2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G';
             const url = `https://opensheet.elk.sh/${spreadsheetId}/10%20MARTES`;
 
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        parseJsonData(data);
-                    } else {
-                        showError("No se encontraron registros en la hoja.");
-                    }
-                })
-                .catch(err => {
-                    console.error("Error al conectar:", err);
-                    showError("Error al conectar con Google Sheets.");
-                });
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    parseJsonData(data);
+                } else {
+                    showError("No se encontraron registros en la hoja.");
+                }
+            } catch (error) {
+                console.error(error);
+                showError("Error de conexión al cargar los datos.");
+            }
         }
 
         function showError(msg) {
@@ -382,17 +379,21 @@
             const datesSet = new Set();
 
             rows.forEach(row => {
-                const fecha = row['FECHA'] ? row['FECHA'].trim() : '';
-                const observacion = row['OBSERVACIONES'] ? row['OBSERVACIONES'].trim() : '-';
-                const origen = row['ORIGEN'] ? row['ORIGEN'].trim() : '';
-                const destino = row['DESTINO'] ? row['DESTINO'].trim() : '';
-                const vehiculo = row['TIPO DE VEHÍCULO'] ? row['TIPO DE VEHÍCULO'].trim() : '';
-                const eco = row['ECO TRACTO'] ? row['ECO TRACTO'].trim() : '';
-                const operador = row['NOMBRE DEL OPERADOR'] ? row['NOMBRE DEL OPERADOR'].trim() : '';
+                // Obtenemos las llaves (columnas) en orden de aparición en el objeto JSON de OpenSheet
+                const keys = Object.keys(row);
+                if (keys.length < 14) return;
 
-                if (!destino || destino === '') return;
+                const fecha = row[keys[0]] ? row[keys[0]].trim() : '';          // Columna A
+                const observacion = row[keys[5]] ? row[keys[5]].trim() : '-';   // Columna F
+                const origen = row[keys[6]] ? row[keys[6]].trim() : '';         // Columna G
+                const destino = row[keys[7]] ? row[keys[7]].trim() : '';        // Columna H
+                const vehiculo = row[keys[8]] ? row[keys[8]].trim() : '';       // Columna I
+                const eco = row[keys[12]] ? row[keys[12]].trim() : '';          // Columna M
+                const operador = row[keys[13]] ? row[keys[13]].trim() : '';     // Columna N
 
-                if (fecha && fecha !== '-') {
+                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) return;
+
+                if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
                     datesSet.add(fecha);
                 }
 
@@ -415,101 +416,4 @@
                 });
             });
 
-            populateDateDropdown(Array.from(datesSet));
-            applyDateFilter();
-        }
-
-        function populateDateDropdown(dates) {
-            const select = document.getElementById('dateFilter');
-            const currentValue = select.value;
-            select.innerHTML = '<option value="ALL">Todas las fechas</option>';
-            
-            dates.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d;
-                opt.textContent = d;
-                select.appendChild(opt);
-            });
-
-            if (dates.includes(currentValue)) {
-                select.value = currentValue;
-            }
-        }
-
-        function applyDateFilter() {
-            const selectedDate = document.getElementById('dateFilter').value;
-            if (selectedDate === 'ALL') {
-                renderDashboard(allTripsData);
-            } else {
-                const filtered = allTripsData.filter(item => item.fecha === selectedDate);
-                renderDashboard(filtered);
-            }
-        }
-
-        function renderDashboard(data) {
-            const total = data.length;
-            const missingList = data.filter(item => item.status === 'missing');
-            const activeList = data.filter(item => item.status === 'en-viaje');
-            const canceledList = data.filter(item => item.status === 'cancelado');
-            
-            const activeCount = activeList.length;
-            const missingCount = missingList.length;
-            const canceledCount = canceledList.length;
-            const efficiency = total > 0 ? ((activeCount / total) * 100).toFixed(1) : '0';
-
-            document.getElementById('sum-total').innerText = total;
-            document.getElementById('sum-active').innerText = activeCount;
-            document.getElementById('sum-missing').innerText = missingCount;
-            document.getElementById('sum-canceled').innerText = canceledCount;
-            document.getElementById('sum-percentage').innerText = efficiency + '%';
-            document.getElementById('progress-fill').style.width = efficiency + '%';
-
-            const missingContainer = document.getElementById('missing-grid');
-            missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar para este turno.</p>' : '';
-            missingList.forEach(item => {
-                missingContainer.innerHTML += `
-                    <div class="trip-card missing">
-                        <div class="route">
-                            <span>${item.origen}</span>
-                            <span>➔</span>
-                            <span>${item.destino}</span>
-                        </div>
-                        <div class="details-grid">
-                            <div class="detail-item"><label>Vehículo</label><span><span class="badge missing">SIN ASIGNAR</span></span></div>
-                            <div class="detail-item"><label>Económico</label><span>${item.eco}</span></div>
-                            <div class="detail-item full-width"><label>Operador Asignado</label><span style="color: var(--danger);">${item.operador}</span></div>
-                            <div class="detail-item full-width"><label>Fecha / Obs.</label><span>[${item.fecha}] ${item.observaciones}</span></div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            const activeContainer = document.getElementById('active-grid');
-            const combinedList = [...activeList, ...canceledList];
-            activeContainer.innerHTML = combinedList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades registradas para este turno.</p>' : '';
-            combinedList.forEach(item => {
-                const isCanceled = item.status === 'cancelado';
-                const badgeClass = isCanceled ? 'badge canceled' : (item.vehiculo.toUpperCase().includes('TORTON') ? 'badge torton' : 'badge');
-                
-                activeContainer.innerHTML += `
-                    <div class="trip-card ${isCanceled ? 'canceled' : ''}">
-                        <div class="route">
-                            <span>${item.origen}</span>
-                            <span>➔</span>
-                            <span>${item.destino}</span>
-                        </div>
-                        <div class="details-grid">
-                            <div class="detail-item"><label>Vehículo</label><span><span class="${badgeClass}">${item.vehiculo}</span></span></div>
-                            <div class="detail-item"><label>Económico</label><span>${isCanceled ? 'N/A' : 'Eco. ' + item.eco}</span></div>
-                            <div class="detail-item full-width"><label>Operador</label><span>${item.operador}</span></div>
-                            <div class="detail-item full-width"><label>Fecha / Obs.</label><span>[${item.fecha}] ${item.observaciones}</span></div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        window.onload = loadLogisticsData;
-    </script>
-</body>
-</html>
+            populateDateDropdown(Array.from(
