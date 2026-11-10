@@ -353,7 +353,7 @@
         async function loadLogisticsData() {
             try {
                 // Usamos un proxy público ligero para saltar cualquier restricción CORS de GitHub -> Google
-                const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+                const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
                 const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(csvUrl);
                 
                 const response = await fetch(proxyUrl);
