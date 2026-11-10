@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Operativo Logístico — Entrega de Turno</title>
+    <!-- Librería PapaParse estable -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
@@ -297,7 +298,7 @@
         </div>
     </div>
 
-    <!-- RESUMEN EJECUTIVO -->
+    <!-- RESUMEN EJECUTIVO (ENTREGA DE TURNO) -->
     <div class="executive-summary">
         <h2>📋 Resumen Ejecutivo — Entrega de Turno</h2>
         
@@ -352,24 +353,22 @@
         }
 
         function loadLogisticsData() {
-            // Usamos un servicio proxy confiable especializado para transformar Google Sheets CSV a JSON sin restricciones
+            // Usamos tu enlace CSV directo original exacto
             const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
-            const jsonProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(csvUrl);
 
-            Papa.parse(jsonProxy, {
+            Papa.parse(csvUrl, {
                 download: true,
                 header: false,
-                skipEmptyLines: true,
                 complete: function(results) {
                     if (results.data && results.data.length > 0) {
-                        parseCSVRows(results.data);
+                        parseCSVAndRender(results.data);
                     } else {
-                        showError("La hoja está vacía o no devolvió datos.");
+                        showError("No se encontraron registros en la hoja.");
                     }
                 },
                 error: function(err) {
                     console.error("Error PapaParse:", err);
-                    showError("Error de red al conectar con Google Sheets.");
+                    showError("Error de conexión al cargar el CSV.");
                 }
             });
         }
@@ -379,14 +378,14 @@
             document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
         }
 
-        function parseCSVRows(rows) {
+        function parseCSVAndRender(rows) {
             allTripsData = [];
             const datesSet = new Set();
 
-            // Empezamos desde la fila i = 1 o 2 (ajustado para leer desde la primera fila de datos omitiendo títulos)
-            for (let i = 1; i < rows.length; i++) {
+            // Lógica original de lectura por índices exactos que funcionaba impecable
+            for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
-                if (!cols || cols.length < 8) continue;
+                if (!cols || cols.length < 14) continue;
 
                 const fecha = cols[0] ? cols[0].trim() : '';          // Columna A
                 const observacion = cols[5] ? cols[5].trim() : '-';   // Columna F
@@ -396,8 +395,7 @@
                 const eco = cols[12] ? cols[12].trim() : '';          // Columna M
                 const operador = cols[13] ? cols[13].trim() : '';     // Columna N
 
-                // Validar que exista destino y que no sea el encabezado literal
-                if (!destino || destino === '' || destino.toLowerCase().includes('destino') || destino.toLowerCase().includes('destinos')) continue;
+                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
 
                 if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
                     datesSet.add(fecha);
@@ -431,7 +429,7 @@
             const currentValue = select.value;
             select.innerHTML = '<option value="ALL">Todas las fechas</option>';
             
-            dates.sort().forEach(d => {
+            dates.forEach(d => {
                 const opt = document.createElement('option');
                 opt.value = d;
                 opt.textContent = d;
@@ -464,6 +462,7 @@
             const canceledCount = canceledList.length;
             const efficiency = total > 0 ? ((activeCount / total) * 100).toFixed(1) : '0';
 
+            // Actualizar contadores del Resumen Ejecutivo
             document.getElementById('sum-total').innerText = total;
             document.getElementById('sum-active').innerText = activeCount;
             document.getElementById('sum-missing').innerText = missingCount;
@@ -471,6 +470,7 @@
             document.getElementById('sum-percentage').innerText = efficiency + '%';
             document.getElementById('progress-fill').style.width = efficiency + '%';
 
+            // Renderizar tarjetas de faltantes
             const missingContainer = document.getElementById('missing-grid');
             missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar para este turno.</p>' : '';
             missingList.forEach(item => {
@@ -491,6 +491,7 @@
                 `;
             });
 
+            // Renderizar tarjetas activas y canceladas
             const activeContainer = document.getElementById('active-grid');
             const combinedList = [...activeList, ...canceledList];
             activeContainer.innerHTML = combinedList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades registradas para este turno.</p>' : '';
