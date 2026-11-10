@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Operativo Logístico en Vivo — 10 Martes</title>
-    <!-- Importamos PapaParse para leer Google Sheets sin errores -->
+    <title>Control Operativo Logístico — Entrega de Turno</title>
+    <!-- Librería PapaParse para lectura de CSV sin bloqueos -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
@@ -14,6 +14,7 @@
             --text-muted: #94a3b8;
             --accent: #3b82f6;
             --success: #22c55e;
+            --warning: #f59e0b;
             --danger: #ef4444;
             --border: #334155;
             --input-bg: #0f172a;
@@ -28,6 +29,7 @@
             --text-muted: #64748b;
             --accent: #2563eb;
             --success: #16a34a;
+            --warning: #d97706;
             --danger: #dc2626;
             --border: #cbd5e1;
             --input-bg: #ffffff;
@@ -84,13 +86,6 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .theme-toggle-btn:hover {
-            border-color: var(--accent);
         }
 
         .refresh-btn {
@@ -103,27 +98,17 @@
             font-weight: 600;
         }
 
-        .refresh-btn:hover {
-            opacity: 0.9;
-        }
-
         .filter-bar {
             background: var(--card-bg);
             border: 1px solid var(--border);
             padding: 1rem 1.5rem;
             border-radius: 12px;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            justify-content: space-between;
             flex-wrap: wrap;
-        }
-
-        .filter-bar label {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
+            gap: 1rem;
         }
 
         .filter-bar select {
@@ -135,55 +120,87 @@
             font-size: 0.95rem;
             outline: none;
             cursor: pointer;
-            min-width: 180px;
         }
 
-        .filter-bar select:focus {
-            border-color: var(--accent);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 3rem;
-        }
-
-        .stat-card {
+        /* RESUMEN EJECUTIVO / ENTREGA DE TURNO */
+        .executive-summary {
             background: var(--card-bg);
-            border: 1px solid var(--border);
+            border: 2px solid var(--accent);
+            border-radius: 16px;
             padding: 1.5rem;
-            border-radius: 14px;
-            position: relative;
-            overflow: hidden;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
-        .stat-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--accent);
+        .executive-summary h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent);
         }
 
-        .stat-card.success::after { background: var(--success); }
-        .stat-card.danger::after { background: var(--danger); }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
 
-        .stat-card h3 {
-            font-size: 0.85rem;
+        .summary-item {
+            background: var(--route-bg);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-item label {
+            font-size: 0.75rem;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
+            display: block;
+            margin-bottom: 0.3rem;
         }
 
-        .stat-card .number {
-            font-size: 2.2rem;
+        .summary-item .val {
+            font-size: 1.8rem;
             font-weight: bold;
         }
 
+        .val.success { color: var(--success); }
+        .val.danger { color: var(--danger); }
+        .val.warning { color: var(--warning); }
+
+        /* BARRA DE CUMPLIMIENTO */
+        .progress-container {
+            margin-top: 1rem;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 0.4rem;
+            color: var(--text-muted);
+        }
+
+        .progress-bar-bg {
+            background: var(--border);
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            background: var(--success);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* ESTRUCTURA GENERAL DE TARJETAS */
         .section-title {
             font-size: 1.3rem;
             margin-bottom: 1.5rem;
@@ -206,20 +223,19 @@
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
             gap: 1.2rem;
         }
 
-        .trip-card:hover {
-            transform: translateY(-4px);
-            border-color: var(--accent);
-        }
-
         .trip-card.missing {
             border-color: var(--danger);
             background: var(--missing-card-bg);
+        }
+
+        .trip-card.canceled {
+            border-color: var(--warning);
+            opacity: 0.75;
         }
 
         .route {
@@ -233,14 +249,10 @@
             border-radius: 8px;
         }
 
-        .route span.arrow {
-            color: var(--accent);
-        }
-
         .details-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1.05rem;
+            gap: 1rem;
             font-size: 0.9rem;
         }
 
@@ -250,10 +262,6 @@
             color: var(--text-muted);
             text-transform: uppercase;
             margin-bottom: 0.2rem;
-        }
-
-        .detail-item span {
-            font-weight: 600;
         }
 
         .badge {
@@ -266,27 +274,12 @@
             color: #3b82f6;
         }
 
-        .badge.torton {
-            background: rgba(245, 158, 11, 0.15);
-            color: #d97706;
-        }
+        .badge.torton { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+        .badge.missing { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .badge.canceled { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
 
-        .badge.missing {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-
-        .full-width {
-            grid-column: span 2;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-muted);
-            font-size: 1.2rem;
-            grid-column: 1 / -1;
-        }
+        .full-width { grid-column: span 2; }
+        .loading { text-align: center; padding: 3rem; color: var(--text-muted); grid-column: 1 / -1; }
     </style>
 </head>
 <body>
@@ -294,47 +287,65 @@
     <header>
         <div>
             <h1>Control Operativo Logístico en Vivo</h1>
-            <p>Sincronizado con Google Sheets — 10 Martes</p>
+            <p>Sincronizado con Google Sheets — Entrega de Turno</p>
         </div>
         <div class="header-controls">
-            <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
-                🌙 Modo Noche
-            </button>
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">🌙 Modo Noche</button>
             <button class="refresh-btn" onclick="loadLogisticsData()">Actualizar Datos</button>
         </div>
     </header>
 
+    <!-- BARRA DE FILTROS POR FECHA -->
     <div class="filter-bar">
-        <label for="dateFilter">📅 Filtrar por Fecha (Columna A):</label>
-        <select id="dateFilter" onchange="applyDateFilter()">
-            <option value="ALL">Todas las fechas</option>
-        </select>
-    </div>
-
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h3>Total de Servicios</h3>
-            <div class="number" id="kpi-total">0</div>
-        </div>
-        <div class="stat-card success">
-            <h3>Unidades en Viaje</h3>
-            <div class="number" id="kpi-active">0</div>
-        </div>
-        <div class="stat-card danger">
-            <h3>Faltantes por Asignar</h3>
-            <div class="number" id="kpi-missing">0</div>
-        </div>
-        <div class="stat-card">
-            <h3>Eficiencia Operativa</h3>
-            <div class="number" id="kpi-efficiency">0%</div>
+        <div>
+            <label for="dateFilter"><b>📅 SELECCIONAR FECHA DE TURNO (COLUMNA A):</b> </label>
+            <select id="dateFilter" onchange="applyDateFilter()">
+                <option value="ALL">Cargando fechas...</option>
+            </select>
         </div>
     </div>
 
+    <!-- SECCIÓN RESUMEN EJECUTIVO / ENTREGA DE TURNO -->
+    <div class="executive-summary">
+        <h2>📋 Resumen Ejecutivo — Entrega de Turno</h2>
+        
+        <div class="summary-grid">
+            <div class="summary-item">
+                <label>Servicios Programados</label>
+                <div class="val" id="sum-total">0</div>
+            </div>
+            <div class="summary-item">
+                <label>Unidades en Tránsito</label>
+                <div class="val success" id="sum-active">0</div>
+            </div>
+            <div class="summary-item">
+                <label>Faltantes por Asignar</label>
+                <div class="val danger" id="sum-missing">0</div>
+            </div>
+            <div class="summary-item">
+                <label>Cancelados / Incidencias</label>
+                <div class="val warning" id="sum-canceled">0</div>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-label">
+                <span>Nivel de Asignación / Cumplimiento del Turno</span>
+                <b id="sum-percentage">0%</b>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN UNIDADES FALTANTES -->
     <h2 class="section-title">⚠️ Unidades Faltantes por Asignar Viaje</h2>
     <div class="grid-container" id="missing-grid">
         <div class="loading">Conectando con Google Sheets...</div>
     </div>
 
+    <!-- SECCIÓN UNIDADES EN VIAJE -->
     <h2 class="section-title">🚛 Unidades Activas en Viaje</h2>
     <div class="grid-container" id="active-grid">
         <div class="loading">Conectando con Google Sheets...</div>
@@ -351,7 +362,7 @@
         }
 
         function loadLogisticsData() {
-            const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+            const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
 
             Papa.parse(csvUrl, {
                 download: true,
@@ -364,8 +375,7 @@
                     }
                 },
                 error: function(err) {
-                    console.error('Error PapaParse:', err);
-                    showError("Error al conectar con Google Sheets. Verifica la publicación.");
+                    showError("Error al conectar con Google Sheets.");
                 }
             });
         }
@@ -379,18 +389,17 @@
             allTripsData = [];
             const datesSet = new Set();
 
-            // Empezamos desde la fila 2 (índice 2) para omitir los encabezados del sheet
             for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
                 if (!cols || cols.length < 14) continue;
 
-                const fecha = cols[0] ? cols[0].trim() : '';          // Columna A (Fecha principal)
-                const observacion = cols[5] ? cols[5].trim() : '-';   // Columna F (Observaciones)
-                const origen = cols[6] ? cols[6].trim() : '';         // Columna G (Origen)
-                const destino = cols[7] ? cols[7].trim() : '';        // Columna H (Destino)
-                const vehiculo = cols[8] ? cols[8].trim() : '';       // Columna I (Tipo de Vehículo)
-                const eco = cols[12] ? cols[12].trim() : '';          // Columna M (Eco Tracto)
-                const operador = cols[13] ? cols[13].trim() : '';     // Columna N (Nombre del Operador)
+                const fecha = cols[0] ? cols[0].trim() : '';          // Columna A
+                const observacion = cols[5] ? cols[5].trim() : '-';   // Columna F
+                const origen = cols[6] ? cols[6].trim() : '';         // Columna G
+                const destino = cols[7] ? cols[7].trim() : '';        // Columna H
+                const vehiculo = cols[8] ? cols[8].trim() : '';       // Columna I
+                const eco = cols[12] ? cols[12].trim() : '';          // Columna M
+                const operador = cols[13] ? cols[13].trim() : '';     // Columna N
 
                 if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
 
@@ -398,22 +407,30 @@
                     datesSet.add(fecha);
                 }
 
-                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
+                // Detectar si está cancelado
+                const isCanceled = observacion.toLowerCase().includes('cancel') || observacion.toLowerCase().includes('no realiza');
+                
+                // Detectar si falta asignación
+                const isMissing = !isCanceled && (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
+
+                let status = 'en-viaje';
+                if (isCanceled) status = 'cancelado';
+                else if (isMissing) status = 'missing';
 
                 allTripsData.push({
                     fecha: fecha || 'Sin Fecha',
                     origen: origen || 'Cedis Tultitlán',
                     destino: destino,
-                    vehiculo: isMissing ? 'SIN ASIGNAR' : (vehiculo || 'TRACTO CAMION'),
+                    vehiculo: isCanceled ? 'CANCELADO' : (isMissing ? 'SIN ASIGNAR' : (vehiculo || 'TRACTO CAMION')),
                     eco: eco && eco !== '-' ? eco : 'S/A',
-                    operador: isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador,
+                    operador: isCanceled ? 'CANCELADO' : (isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador),
                     observaciones: observacion && observacion !== '' ? observacion : '-',
-                    status: isMissing ? 'missing' : 'en-viaje'
+                    status: status
                 });
             }
 
             populateDateDropdown(Array.from(datesSet));
-            renderDashboard(allTripsData);
+            applyDateFilter();
         }
 
         function populateDateDropdown(dates) {
@@ -447,23 +464,30 @@
             const total = data.length;
             const missingList = data.filter(item => item.status === 'missing');
             const activeList = data.filter(item => item.status === 'en-viaje');
+            const canceledList = data.filter(item => item.status === 'cancelado');
+            
             const activeCount = activeList.length;
             const missingCount = missingList.length;
-            const efficiency = total > 0 ? ((activeCount / total) * 100).toFixed(1) + '%' : '0%';
+            const canceledCount = canceledList.length;
+            const efficiency = total > 0 ? ((activeCount / total) * 100).toFixed(1) : '0';
 
-            document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-active').innerText = activeCount;
-            document.getElementById('kpi-missing').innerText = missingCount;
-            document.getElementById('kpi-efficiency').innerText = efficiency;
+            // Actualizar Resumen Ejecutivo
+            document.getElementById('sum-total').innerText = total;
+            document.getElementById('sum-active').innerText = activeCount;
+            document.getElementById('sum-missing').innerText = missingCount;
+            document.getElementById('sum-canceled').innerText = canceledCount;
+            document.getElementById('sum-percentage').innerText = efficiency + '%';
+            document.getElementById('progress-fill').style.width = efficiency + '%';
 
+            // Renderizar Tarjetas Faltantes
             const missingContainer = document.getElementById('missing-grid');
-            missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar para esta fecha.</p>' : '';
+            missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar para este turno.</p>' : '';
             missingList.forEach(item => {
                 missingContainer.innerHTML += `
                     <div class="trip-card missing">
                         <div class="route">
                             <span>${item.origen}</span>
-                            <span class="arrow">➔</span>
+                            <span>➔</span>
                             <span>${item.destino}</span>
                         </div>
                         <div class="details-grid">
@@ -476,20 +500,24 @@
                 `;
             });
 
+            // Renderizar Tarjetas Activas y Canceladas
             const activeContainer = document.getElementById('active-grid');
-            activeContainer.innerHTML = activeList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades registradas en viaje para esta fecha.</p>' : '';
-            activeList.forEach(item => {
-                const badgeClass = item.vehiculo.toUpperCase().includes('TORTON') ? 'badge torton' : 'badge';
+            const combinedList = [...activeList, ...canceledList];
+            activeContainer.innerHTML = combinedList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades registradas para este turno.</p>' : '';
+            combinedList.forEach(item => {
+                const isCanceled = item.status === 'cancelado';
+                const badgeClass = isCanceled ? 'badge canceled' : (item.vehiculo.toUpperCase().includes('TORTON') ? 'badge torton' : 'badge');
+                
                 activeContainer.innerHTML += `
-                    <div class="trip-card">
+                    <div class="trip-card ${isCanceled ? 'canceled' : ''}">
                         <div class="route">
                             <span>${item.origen}</span>
-                            <span class="arrow">➔</span>
+                            <span>➔</span>
                             <span>${item.destino}</span>
                         </div>
                         <div class="details-grid">
                             <div class="detail-item"><label>Vehículo</label><span><span class="${badgeClass}">${item.vehiculo}</span></span></div>
-                            <div class="detail-item"><label>Económico</label><span>Eco. ${item.eco}</span></div>
+                            <div class="detail-item"><label>Económico</label><span>${isCanceled ? 'N/A' : 'Eco. ' + item.eco}</span></div>
                             <div class="detail-item full-width"><label>Operador</label><span>${item.operador}</span></div>
                             <div class="detail-item full-width"><label>Fecha / Obs.</label><span>[${item.fecha}] ${item.observaciones}</span></div>
                         </div>
