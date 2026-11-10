@@ -350,23 +350,24 @@
             btn.innerHTML = body.classList.contains('light-theme') ? '☀️ Modo Día' : '🌙 Modo Noche';
         }
 
-        async function loadLogisticsData() {
+        function loadLogisticsData() {
+            // Usamos la API de Google Visualization oficial usando tu ID y tu gid específico (1104590225)
             const spreadsheetId = '2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G';
-            const url = `https://opensheet.elk.sh/${spreadsheetId}/10%20MARTES`;
+            const gid = '1104590225';
+            const url = `https://docs.google.com/spreadsheets/d/e/${spreadsheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
 
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data && data.length > 0) {
-                    parseJsonData(data);
-                } else {
-                    showError("No se encontraron registros en la hoja.");
-                }
-            } catch (error) {
-                console.error(error);
-                showError("Error de conexión al cargar los datos.");
-            }
+            fetch(url)
+                .then(res => res.text())
+                .then(rep => {
+                    // Google devuelve un JSON con envoltura de texto, la limpiamos con regex
+                    const jsonString = rep.substring(47, rep.length - 2);
+                    const json = JSON.parse(jsonString);
+                    parseGoogleVisualizationData(json);
+                })
+                .catch(err => {
+                    console.error("Error al conectar:", err);
+                    showError("Error al conectar con Google Sheets.");
+                });
         }
 
         function showError(msg) {
@@ -374,24 +375,27 @@
             document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
         }
 
-        function parseJsonData(rows) {
+        function parseGoogleVisualizationData(json) {
             allTripsData = [];
             const datesSet = new Set();
+            const rows = json.table.rows;
 
-            rows.forEach(row => {
-                // Obtenemos las llaves (columnas) en orden de aparición en el objeto JSON de OpenSheet
-                const keys = Object.keys(row);
-                if (keys.length < 14) return;
+            // Empezamos desde la fila 2 (índice 2) para omitir encabezados internos
+            for (let i = 2; i < rows.length; i++) {
+                const c = rows[i].c;
+                if (!c || c.length < 14) continue;
 
-                const fecha = row[keys[0]] ? row[keys[0]].trim() : '';          // Columna A
-                const observacion = row[keys[5]] ? row[keys[5]].trim() : '-';   // Columna F
-                const origen = row[keys[6]] ? row[keys[6]].trim() : '';         // Columna G
-                const destino = row[keys[7]] ? row[keys[7]].trim() : '';        // Columna H
-                const vehiculo = row[keys[8]] ? row[keys[8]].trim() : '';       // Columna I
-                const eco = row[keys[12]] ? row[keys[12]].trim() : '';          // Columna M
-                const operador = row[keys[13]] ? row[keys[13]].trim() : '';     // Columna N
+                const getVal = (idx) => (c[idx] && c[idx].v !== null && c[idx].v !== undefined) ? String(c[idx].v).trim() : '';
 
-                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) return;
+                const fecha = getVal(0);          // Columna A (Fecha)
+                const observacion = getVal(5) || '-';   // Columna F (Observaciones)
+                const origen = getVal(6);         // Columna G (Origen)
+                const destino = getVal(7);        // Columna H (Destino)
+                const vehiculo = getVal(8);       // Columna I (Vehículo)
+                const eco = getVal(12);           // Columna M (Eco Tracto)
+                const operador = getVal(13);      // Columna N (Operador)
+
+                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
 
                 if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
                     datesSet.add(fecha);
@@ -414,6 +418,103 @@
                     observaciones: observacion && observacion !== '' ? observacion : '-',
                     status: status
                 });
+            }
+
+            populateDateDropdown(Array.from(datesSet));
+            applyDateFilter();
+        }
+
+        function populateDateDropdown(dates) {
+            const select = document.getElementById('dateFilter');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="ALL">Todas las fechas</option>';
+            
+            dates.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                select.appendChild(opt);
             });
 
-            populateDateDropdown(Array.from(
+            if (dates.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        function applyDateFilter() {
+            const selectedDate = document.getElementById('dateFilter').value;
+            if (selectedDate === 'ALL') {
+                renderDashboard(allTripsData);
+            } else {
+                const filtered = allTripsData.filter(item => item.fecha === selectedDate);
+                renderDashboard(filtered);
+            }
+        }
+
+        function renderDashboard(data) {
+            const total = data.length;
+            const missingList = data.filter(item => item.status === 'missing');
+            const activeList = data.filter(item => item.status === 'en-viaje');
+            const canceledList = data.filter(item => item.status === 'cancelado');
+            
+            const activeCount = activeList.length;
+            const missingCount = missingList.length;
+            const canceledCount = canceledList.length;
+            const efficiency = total > 0 ? ((activeCount / total) * 100).toFixed(1) : '0';
+
+            document.getElementById('sum-total').innerText = total;
+            document.getElementById('sum-active').innerText = activeCount;
+            document.getElementById('sum-missing').innerText = missingCount;
+            document.getElementById('sum-canceled').innerText = canceledCount;
+            document.getElementById('sum-percentage').innerText = efficiency + '%';
+            document.getElementById('progress-fill').style.width = efficiency + '%';
+
+            const missingContainer = document.getElementById('missing-grid');
+            missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar para este turno.</p>' : '';
+            missingList.forEach(item => {
+                missingContainer.innerHTML += `
+                    <div class="trip-card missing">
+                        <div class="route">
+                            <span>${item.origen}</span>
+                            <span>➔</span>
+                            <span>${item.destino}</span>
+                        </div>
+                        <div class="details-grid">
+                            <div class="detail-item"><label>Vehículo</label><span><span class="badge missing">SIN ASIGNAR</span></span></div>
+                            <div class="detail-item"><label>Económico</label><span>${item.eco}</span></div>
+                            <div class="detail-item full-width"><label>Operador Asignado</label><span style="color: var(--danger);">${item.operador}</span></div>
+                            <div class="detail-item full-width"><label>Fecha / Obs.</label><span>[${item.fecha}] ${item.observaciones}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const activeContainer = document.getElementById('active-grid');
+            const combinedList = [...activeList, ...canceledList];
+            activeContainer.innerHTML = combinedList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades registradas para este turno.</p>' : '';
+            combinedList.forEach(item => {
+                const isCanceled = item.status === 'cancelado';
+                const badgeClass = isCanceled ? 'badge canceled' : (item.vehiculo.toUpperCase().includes('TORTON') ? 'badge torton' : 'badge');
+                
+                activeContainer.innerHTML += `
+                    <div class="trip-card ${isCanceled ? 'canceled' : ''}">
+                        <div class="route">
+                            <span>${item.origen}</span>
+                            <span>➔</span>
+                            <span>${item.destino}</span>
+                        </div>
+                        <div class="details-grid">
+                            <div class="detail-item"><label>Vehículo</label><span><span class="${badgeClass}">${item.vehiculo}</span></span></div>
+                            <div class="detail-item"><label>Económico</label><span>${isCanceled ? 'N/A' : 'Eco. ' + item.eco}</span></div>
+                            <div class="detail-item full-width"><label>Operador</label><span>${item.operador}</span></div>
+                            <div class="detail-item full-width"><label>Fecha / Obs.</label><span>[${item.fecha}] ${item.observaciones}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        window.onload = loadLogisticsData;
+    </script>
+</body>
+</html>
