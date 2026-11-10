@@ -258,39 +258,13 @@
 
     <!-- SCRIPT DE CONEXIÓN CSV EN VIVO -->
     <script>
-        const sheetData = [
-            {"origen": "Cedis Tultitlan", "destino": "Olivar del Conde", "vehiculo": "TORTON", "eco": "811", "operador": "GUSTAVO OVANDO BAHENA", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Olivar del Conde", "vehiculo": "TORTON", "eco": "859", "operador": "JORGE LUIS ROMERO TINOCO", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Vallejo", "vehiculo": "TRACTO CAMION", "eco": "840", "operador": "JOSE EMMANUEL HERNANDEZ CONTRERAS", "observaciones": "carga tarimas a su regreso", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Iztapalapa", "vehiculo": "TRACTO CAMION", "eco": "821", "operador": "OSCAR PEREZ ALVAREZ", "observaciones": "carga tarimas a su regreso", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Ecatepec", "vehiculo": "TRACTO CAMION", "eco": "836", "operador": "JOSE RUIZ SILVA", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Ecatepec", "vehiculo": "TRACTO CAMION", "eco": "810", "operador": "JOSE GILBERTO VEGA MENDOZA", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Naucalpan", "vehiculo": "TRACTO CAMION", "eco": "835", "operador": "MARCO ANTONIO VARGAS JUAREZ", "observaciones": "carga tarimas a su regreso", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Puebla Norte", "vehiculo": "TRACTO CAMION", "eco": "817", "operador": "JOSE RICARDO TELLEZ MORA", "observaciones": "carga tarimas a su regreso", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Puebla Norte", "vehiculo": "TRACTO CAMION", "eco": "861", "operador": "JESUS ALBERTO GONZALEZ ESPINOZA", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Puebla Norte", "vehiculo": "TRACTO CAMION", "eco": "863", "operador": "JAVIER VILLEDA GONZALEZ", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Puebla Sur", "vehiculo": "TRACTO CAMION", "eco": "845", "operador": "GABRIEL NARANJO ALONSO", "observaciones": "carga tarimas a su regreso", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Veracruz", "vehiculo": "TORTON", "eco": "858", "operador": "LUIS ALBERTO SANCHEZ RIVERA", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Atemajac", "vehiculo": "TRACTO CAMION", "eco": "855", "operador": "ALEJANDRO GARCIA NAVA", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Aguascalientes", "vehiculo": "TORTON", "eco": "843", "operador": "FERNANDO RUIZ CADENA", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Cedis Leon", "destino": "Cedis Tultitlan", "vehiculo": "TRACTO CAMION", "eco": "846", "operador": "EDGAR GUERRERO PIEDRAS", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Atemajac", "destino": "Cedis Tultitlan", "vehiculo": "TRACTO CAMION", "eco": "837", "operador": "FRANCISCO CRUZ HERNANDEZ", "observaciones": "RES C LEON", "status": "en-viaje"},
-            {"origen": "Olivar del Conde", "destino": "Cedis Tultitlan", "vehiculo": "TORTON", "eco": "859", "operador": "JORGE LUIS ROMERO TINOCO", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Ecatepec", "destino": "Cedis Tultitlan", "vehiculo": "TRACTO CAMION", "eco": "836", "operador": "JOSE RUIZ SILVA", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Miravalle", "destino": "Atemajac", "vehiculo": "TRACTO CAMION", "eco": "839", "operador": "FERNANDO MENDOZA VELAZQUEZ", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Atemajac", "destino": "Cedis Tultitlan", "vehiculo": "TRACTO CAMION", "eco": "839", "operador": "FERNANDO MENDOZA VELAZQUEZ", "observaciones": "-", "status": "en-viaje"},
-            {"origen": "Cedis Tultitlan", "destino": "Dark Store", "vehiculo": "SIN ASIGNAR", "eco": "S/A", "operador": "PENDIENTE DE ASIGNACIÓN", "observaciones": "-", "status": "missing"},
-            {"origen": "Cedis Tultitlan", "destino": "Ecatepec", "vehiculo": "SIN ASIGNAR", "eco": "S/A", "operador": "PENDIENTE DE ASIGNACIÓN", "observaciones": "*48", "status": "missing"}
-        ];
-
         async function loadLogisticsData() {
             try {
-                const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv');
+                const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv');
                 const csvText = await response.text();
                 parseCSVAndRender(csvText);
             } catch (error) {
                 console.error('Error al conectar con Google Sheets:', error);
-                renderDashboard(sheetData);
             }
         }
 
@@ -300,43 +274,39 @@
                 return matches.map(val => val.replace(/^"|"$/g, '').trim());
             });
 
-            if (rows.length < 2) return;
-
-            const headers = rows[0].map(h => h.toUpperCase().replace(/\s+/g, ' '));
-            const idxOrigen = headers.findIndex(h => h.includes('ORIGEN') && !h.includes('SALIDA'));
-            const idxDestino = headers.findIndex(h => h.includes('DESTINO'));
-            const idxVehiculo = headers.findIndex(h => h.includes('TIPO DE VEHÍCULO') || h.includes('TIPO'));
-            const idxEco = headers.findIndex(h => h.includes('ECO TRACTO'));
-            const idxOp = headers.findIndex(h => h.includes('NOMBRE DEL OPERADOR') || h.includes('OPERADOR'));
-            const idxObs = headers.findIndex(h => h.includes('OBSERVACIONES') && !h.includes('1'));
-
             const trips = [];
 
-            for (let i = 1; i < rows.length; i++) {
+            // Empezamos desde la fila 2 para saltarnos los encabezados
+            for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
-                if (cols.length < 5 || !cols[idxDestino]) continue;
+                // Validamos que la fila tenga al menos hasta la columna M (operador)
+                if (!cols || cols.length < 13) continue;
 
-                const origen = cols[idxOrigen] || 'Cedis Tultitlán';
-                const destino = cols[idxDestino] || 'Pendiente';
-                const vehiculo = cols[idxVehiculo] || 'SIN ASIGNAR';
-                const eco = cols[idxEco] || 'S/A';
-                const operador = cols[idxOp] || 'PENDIENTE DE ASIGNACIÓN';
-                const observaciones = cols[idxObs] || '-';
+                const origen = cols[5] ? cols[5].replace(/"/g, '').trim() : '';     // Columna F
+                const destino = cols[6] ? cols[6].replace(/"/g, '').trim() : '';    // Columna G
+                const vehiculo = cols[7] ? cols[7].replace(/"/g, '').trim() : '';   // Columna H
+                const eco = cols[11] ? cols[11].replace(/"/g, '').trim() : '';      // Columna L (Eco Tracto)
+                const operador = cols[12] ? cols[12].replace(/"/g, '').trim() : ''; // Columna M (Operador)
+                const observaciones = cols[4] ? cols[4].replace(/"/g, '').trim() : '-'; // Columna E
 
-                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === 'PENDIENTE DE ASIGNACIÓN' || !eco || eco === '-' || eco === 'nan');
+                // Si no hay destino, saltamos la fila vacía
+                if (!destino || destino === '') continue;
+
+                // Verificamos si falta operador o económico
+                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || !eco || eco === '-' || eco === 'nan' || eco === '');
 
                 trips.push({
-                    origen,
-                    destino,
-                    vehiculo: isMissing ? 'SIN ASIGNAR' : vehiculo,
-                    eco: eco !== '-' && eco !== 'nan' ? eco : 'S/A',
+                    origen: origen || 'Cedis Tultitlán',
+                    destino: destino,
+                    vehiculo: isMissing ? 'SIN ASIGNAR' : (vehiculo || 'TRACTO CAMION'),
+                    eco: eco && eco !== '-' ? eco : 'S/A',
                     operador: isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador,
-                    observaciones: observaciones !== '-' && observaciones !== 'nan' ? observaciones : '-',
+                    observaciones: observaciones && observaciones !== '' ? observaciones : '-',
                     status: isMissing ? 'missing' : 'en-viaje'
                 });
             }
 
-            renderDashboard(trips.length > 0 ? trips : sheetData);
+            renderDashboard(trips);
         }
 
         function renderDashboard(data) {
