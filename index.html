@@ -6,7 +6,6 @@
     <title>Dashboard Logístico en Vivo — 10 Martes</title>
     <style>
         :root {
-            /* MODO OSCURO (Noche por defecto) */
             --bg-color: #0f172a;
             --card-bg: #1e293b;
             --text-main: #f8fafc;
@@ -20,7 +19,6 @@
             --route-bg: rgba(255, 255, 255, 0.03);
         }
 
-        /* MODO CLARO (Día) */
         body.light-theme {
             --bg-color: #f1f5f9;
             --card-bg: #ffffff;
@@ -107,7 +105,6 @@
             opacity: 0.9;
         }
 
-        /* BARRA DE FILTROS */
         .filter-bar {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -143,7 +140,6 @@
             border-color: var(--accent);
         }
 
-        /* STATS GRID */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -186,7 +182,6 @@
             font-weight: bold;
         }
 
-        /* SECTION TITLE */
         .section-title {
             font-size: 1.3rem;
             margin-bottom: 1.5rem;
@@ -197,7 +192,6 @@
             padding-bottom: 0.5rem;
         }
 
-        /* CSS GRID FOR CARDS */
         .grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -308,15 +302,13 @@
         </div>
     </header>
 
-    <!-- BARRA DE FILTROS -->
     <div class="filter-bar">
-        <label for="dateFilter">📅 Filtrar por Fecha:</label>
+        <label for="dateFilter">📅 Filtrar por Fecha (Columna B):</label>
         <select id="dateFilter" onchange="applyDateFilter()">
             <option value="ALL">Todas las fechas</option>
         </select>
     </div>
 
-    <!-- STATS KPIs -->
     <div class="stats-grid">
         <div class="stat-card">
             <h3>Total de Servicios</h3>
@@ -336,38 +328,29 @@
         </div>
     </div>
 
-    <!-- SECCIÓN UNIDADES FALTANTES -->
     <h2 class="section-title">⚠️ Unidades Faltantes por Asignar Viaje</h2>
     <div class="grid-container" id="missing-grid">
         <div class="loading">Conectando con Google Sheets...</div>
     </div>
 
-    <!-- SECCIÓN UNIDADES EN VIAJE -->
     <h2 class="section-title">🚛 Unidades Activas en Viaje</h2>
     <div class="grid-container" id="active-grid">
         <div class="loading">Conectando con Google Sheets...</div>
     </div>
 
-    <!-- SCRIPT -->
     <script>
-        let allTripsData = []; // Guardará todos los viajes cargados
+        let allTripsData = [];
 
-        // Alternate Theme (Día / Noche)
         function toggleTheme() {
             const body = document.body;
             const btn = document.getElementById('themeBtn');
             body.classList.toggle('light-theme');
-            
-            if (body.classList.contains('light-theme')) {
-                btn.innerHTML = '☀️ Modo Día';
-            } else {
-                btn.innerHTML = '🌙 Modo Noche';
-            }
+            btn.innerHTML = body.classList.contains('light-theme') ? '☀️ Modo Día' : '🌙 Modo Noche';
         }
 
         async function loadLogisticsData() {
             try {
-                const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv');
+                const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv');
                 const text = await response.text();
 
                 if (text.trim().startsWith('<!DOCTYPE html>') || text.includes('<html')) {
@@ -377,7 +360,7 @@
                 parseCSVAndRender(text);
             } catch (error) {
                 console.error('Error al conectar con Google Sheets:', error);
-                document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger);">Error al cargar los datos. Revisa la publicación del CSV en Google Sheets.</div>';
+                document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger);">Error al cargar los datos. Revisa la publicación del CSV.</div>';
                 document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
             }
         }
@@ -393,33 +376,32 @@
 
             for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
-                if (!cols || cols.length < 13) continue;
+                if (!cols || cols.length < 14) continue;
 
-                const fechaCarga = cols[2] ? cols[2].trim() : '';    // Columna C (Fecha Carga)
-                const fechaDescarga = cols[3] ? cols[3].trim() : ''; // Columna D (Fecha Descarga)
-                const observaciones = cols[4] ? cols[4].trim() : '-'; // Columna E
-                const origen = cols[5] ? cols[5].trim() : '';        // Columna F
-                const destino = cols[6] ? cols[6].trim() : '';       // Columna G
-                const vehiculo = cols[7] ? cols[7].trim() : '';      // Columna H
-                const eco = cols[11] ? cols[11].trim() : '';         // Columna L (Eco Tracto)
-                const operador = cols[12] ? cols[12].trim() : '';    // Columna M (Operador)
+                const fecha = cols[1] ? cols[1].trim() : '';          // Columna B (Fecha principal)
+                const observacion = cols[5] ? cols[5].trim() : '-';   // Columna F (Observaciones)
+                const origen = cols[6] ? cols[6].trim() : '';         // Columna G (Origen)
+                const destino = cols[7] ? cols[7].trim() : '';        // Columna H (Destino)
+                const vehiculo = cols[8] ? cols[8].trim() : '';       // Columna I (Tipo de Vehículo)
+                const eco = cols[12] ? cols[12].trim() : '';          // Columna M (Eco Tracto)
+                const operador = cols[13] ? cols[13].trim() : '';     // Columna N (Nombre del Operador)
 
                 if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
 
-                // Agregar fechas válidas al selector
-                if (fechaDescarga && fechaDescarga !== '-') datesSet.add(fechaDescarga);
-                if (fechaCarga && fechaCarga !== '-') datesSet.add(fechaCarga);
+                if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
+                    datesSet.add(fecha);
+                }
 
-                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'S/A');
+                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
 
                 allTripsData.push({
-                    fecha: fechaDescarga || fechaCarga || 'Sin Fecha',
+                    fecha: fecha || 'Sin Fecha',
                     origen: origen || 'Cedis Tultitlán',
                     destino: destino,
                     vehiculo: isMissing ? 'SIN ASIGNAR' : (vehiculo || 'TRACTO CAMION'),
                     eco: eco && eco !== '-' ? eco : 'S/A',
                     operador: isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador,
-                    observaciones: observaciones && observaciones !== '' ? observaciones : '-',
+                    observaciones: observacion && observacion !== '' ? observacion : '-',
                     status: isMissing ? 'missing' : 'en-viaje'
                 });
             }
