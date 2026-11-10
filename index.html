@@ -299,7 +299,6 @@
 
         async function loadLogisticsData() {
             try {
-                // Usamos un proxy directo y transparente para evitar bloqueos CORS
                 const rawCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
                 const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rawCsvUrl);
 
@@ -326,9 +325,91 @@
 
             const trips = [];
 
-            // Empezamos desde la fila 2 para saltarnos los títulos
             for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
                 if (!cols || cols.length < 13) continue;
 
                 const origen = cols[5] ? cols[5].trim() : '';      // Columna F
+                const destino = cols[6] ? cols[6].trim() : '';    // Columna G
+                const vehiculo = cols[7] ? cols[7].trim() : '';   // Columna H
+                const eco = cols[11] ? cols[11].trim() : '';       // Columna L
+                const operador = cols[12] ? cols[12].trim() : ''; // Columna M
+                const observaciones = cols[4] ? cols[4].trim() : '-'; // Columna E
+
+                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
+
+                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
+
+                trips.push({
+                    origen: origen || 'Cedis Tultitlán',
+                    destino: destino,
+                    vehiculo: isMissing ? 'SIN ASIGNAR' : (vehiculo || 'TRACTO CAMION'),
+                    eco: eco && eco !== '-' ? eco : 'S/A',
+                    operador: isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador,
+                    observaciones: observaciones && observaciones !== '' ? observaciones : '-',
+                    status: isMissing ? 'missing' : 'en-viaje'
+                });
+            }
+
+            renderDashboard(trips);
+        }
+
+        function renderDashboard(data) {
+            const total = data.length;
+            const missingList = data.filter(item => item.status === 'missing');
+            const activeList = data.filter(item => item.status === 'en-viaje');
+            const activeCount = activeList.length;
+            const missingCount = missingList.length;
+            const efficiency = total > 0 ? ((activeCount / total) * 100).toFixed(1) + '%' : '0%';
+
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-active').innerText = activeCount;
+            document.getElementById('kpi-missing').innerText = missingCount;
+            document.getElementById('kpi-efficiency').innerText = efficiency;
+
+            const missingContainer = document.getElementById('missing-grid');
+            missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar.</p>' : '';
+            missingList.forEach(item => {
+                missingContainer.innerHTML += `
+                    <div class="trip-card missing">
+                        <div class="route">
+                            <span>${item.origen}</span>
+                            <span class="arrow">➔</span>
+                            <span>${item.destino}</span>
+                        </div>
+                        <div class="details-grid">
+                            <div class="detail-item"><label>Vehículo</label><span><span class="badge missing">SIN ASIGNAR</span></span></div>
+                            <div class="detail-item"><label>Económico</label><span>${item.eco}</span></div>
+                            <div class="detail-item full-width"><label>Operador Asignado</label><span style="color: var(--danger);">${item.operador}</span></div>
+                            <div class="detail-item full-width"><label>Observaciones</label><span>${item.observaciones}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const activeContainer = document.getElementById('active-grid');
+            activeContainer.innerHTML = activeList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades registradas en viaje.</p>' : '';
+            activeList.forEach(item => {
+                const badgeClass = item.vehiculo.toUpperCase().includes('TORTON') ? 'badge torton' : 'badge';
+                activeContainer.innerHTML += `
+                    <div class="trip-card">
+                        <div class="route">
+                            <span>${item.origen}</span>
+                            <span class="arrow">➔</span>
+                            <span>${item.destino}</span>
+                        </div>
+                        <div class="details-grid">
+                            <div class="detail-item"><label>Vehículo</label><span><span class="${badgeClass}">${item.vehiculo}</span></span></div>
+                            <div class="detail-item"><label>Económico</label><span>Eco. ${item.eco}</span></div>
+                            <div class="detail-item full-width"><label>Operador</label><span>${item.operador}</span></div>
+                            <div class="detail-item full-width"><label>Observaciones</label><span>${item.observaciones}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        window.onload = loadLogisticsData;
+    </script>
+</body>
+</html>
