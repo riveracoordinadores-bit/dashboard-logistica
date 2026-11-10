@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Operativo Logístico — Entrega de Turno</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -351,23 +352,26 @@
         }
 
         function loadLogisticsData() {
-            // Usamos la API de Google Visualization oficial usando tu ID y tu gid específico (1104590225)
-            const spreadsheetId = '2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G';
-            const gid = '1104590225';
-            const url = `https://docs.google.com/spreadsheets/d/e/${spreadsheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
+            // Usamos un servicio proxy confiable especializado para transformar Google Sheets CSV a JSON sin restricciones
+            const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+            const jsonProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(csvUrl);
 
-            fetch(url)
-                .then(res => res.text())
-                .then(rep => {
-                    // Google devuelve un JSON con envoltura de texto, la limpiamos con regex
-                    const jsonString = rep.substring(47, rep.length - 2);
-                    const json = JSON.parse(jsonString);
-                    parseGoogleVisualizationData(json);
-                })
-                .catch(err => {
-                    console.error("Error al conectar:", err);
-                    showError("Error al conectar con Google Sheets.");
-                });
+            Papa.parse(jsonProxy, {
+                download: true,
+                header: false,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        parseCSVRows(results.data);
+                    } else {
+                        showError("La hoja está vacía o no devolvió datos.");
+                    }
+                },
+                error: function(err) {
+                    console.error("Error PapaParse:", err);
+                    showError("Error de red al conectar con Google Sheets.");
+                }
+            });
         }
 
         function showError(msg) {
@@ -375,27 +379,25 @@
             document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
         }
 
-        function parseGoogleVisualizationData(json) {
+        function parseCSVRows(rows) {
             allTripsData = [];
             const datesSet = new Set();
-            const rows = json.table.rows;
 
-            // Empezamos desde la fila 2 (índice 2) para omitir encabezados internos
-            for (let i = 2; i < rows.length; i++) {
-                const c = rows[i].c;
-                if (!c || c.length < 14) continue;
+            // Empezamos desde la fila i = 1 o 2 (ajustado para leer desde la primera fila de datos omitiendo títulos)
+            for (let i = 1; i < rows.length; i++) {
+                const cols = rows[i];
+                if (!cols || cols.length < 8) continue;
 
-                const getVal = (idx) => (c[idx] && c[idx].v !== null && c[idx].v !== undefined) ? String(c[idx].v).trim() : '';
+                const fecha = cols[0] ? cols[0].trim() : '';          // Columna A
+                const observacion = cols[5] ? cols[5].trim() : '-';   // Columna F
+                const origen = cols[6] ? cols[6].trim() : '';         // Columna G
+                const destino = cols[7] ? cols[7].trim() : '';        // Columna H
+                const vehiculo = cols[8] ? cols[8].trim() : '';       // Columna I
+                const eco = cols[12] ? cols[12].trim() : '';          // Columna M
+                const operador = cols[13] ? cols[13].trim() : '';     // Columna N
 
-                const fecha = getVal(0);          // Columna A (Fecha)
-                const observacion = getVal(5) || '-';   // Columna F (Observaciones)
-                const origen = getVal(6);         // Columna G (Origen)
-                const destino = getVal(7);        // Columna H (Destino)
-                const vehiculo = getVal(8);       // Columna I (Vehículo)
-                const eco = getVal(12);           // Columna M (Eco Tracto)
-                const operador = getVal(13);      // Columna N (Operador)
-
-                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
+                // Validar que exista destino y que no sea el encabezado literal
+                if (!destino || destino === '' || destino.toLowerCase().includes('destino') || destino.toLowerCase().includes('destinos')) continue;
 
                 if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
                     datesSet.add(fecha);
@@ -429,7 +431,7 @@
             const currentValue = select.value;
             select.innerHTML = '<option value="ALL">Todas las fechas</option>';
             
-            dates.forEach(d => {
+            dates.sort().forEach(d => {
                 const opt = document.createElement('option');
                 opt.value = d;
                 opt.textContent = d;
