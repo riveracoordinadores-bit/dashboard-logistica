@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Operativo Logístico — Entrega de Turno</title>
-    <!-- Librería PapaParse estable -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
@@ -298,7 +297,7 @@
         </div>
     </div>
 
-    <!-- RESUMEN EJECUTIVO (ENTREGA DE TURNO) -->
+    <!-- RESUMEN EJECUTIVO -->
     <div class="executive-summary">
         <h2>📋 Resumen Ejecutivo — Entrega de Turno</h2>
         
@@ -320,6 +319,8 @@
                 <div class="val warning" id="sum-canceled">0</div>
             </div>
         </div>
+
+        5
 
         <div class="progress-container">
             <div class="progress-label">
@@ -353,7 +354,6 @@
         }
 
         function loadLogisticsData() {
-            // Usamos tu enlace CSV directo original exacto
             const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
 
             Papa.parse(csvUrl, {
@@ -382,7 +382,6 @@
             allTripsData = [];
             const datesSet = new Set();
 
-            // Lógica original de lectura por índices exactos que funcionaba impecable
             for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
                 if (!cols || cols.length < 14) continue;
@@ -395,7 +394,9 @@
                 const eco = cols[12] ? cols[12].trim() : '';          // Columna M
                 const operador = cols[13] ? cols[13].trim() : '';     // Columna N
 
-                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
+                // Filtro de seguridad: si el destino contiene código, etiquetas o script, lo ignoramos por completo
+                if (!destino || destino === '' || destino.includes('<') || destino.includes('function') || destino.toLowerCase().includes('destino')) continue;
+                if (fecha.includes('<') || fecha.includes('function') || fecha.length > 25) continue;
 
                 if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
                     datesSet.add(fecha);
@@ -462,7 +463,6 @@
             const canceledCount = canceledList.length;
             const efficiency = total > 0 ? ((activeCount / total) * 100).toFixed(1) : '0';
 
-            // Actualizar contadores del Resumen Ejecutivo
             document.getElementById('sum-total').innerText = total;
             document.getElementById('sum-active').innerText = activeCount;
             document.getElementById('sum-missing').innerText = missingCount;
@@ -470,7 +470,6 @@
             document.getElementById('sum-percentage').innerText = efficiency + '%';
             document.getElementById('progress-fill').style.width = efficiency + '%';
 
-            // Renderizar tarjetas de faltantes
             const missingContainer = document.getElementById('missing-grid');
             missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar para este turno.</p>' : '';
             missingList.forEach(item => {
@@ -491,7 +490,6 @@
                 `;
             });
 
-            // Renderizar tarjetas activas y canceladas
             const activeContainer = document.getElementById('active-grid');
             const combinedList = [...activeList, ...canceledList];
             activeContainer.innerHTML = combinedList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades registradas para este turno.</p>' : '';
@@ -506,6 +504,7 @@
                             <span>➔</span>
                             <span>${item.destino}</span>
                         </div>
+                        .details-grid
                         <div class="details-grid">
                             <div class="detail-item"><label>Vehículo</label><span><span class="${badgeClass}">${item.vehiculo}</span></span></div>
                             <div class="detail-item"><label>Económico</label><span>${isCanceled ? 'N/A' : 'Eco. ' + item.eco}</span></div>
