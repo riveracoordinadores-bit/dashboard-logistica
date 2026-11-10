@@ -276,24 +276,23 @@
 
             const trips = [];
 
-            // Empezamos desde la fila 2 para saltarnos los encabezados
+            // Empezamos desde la fila 2 (índice 2) para saltarnos los títulos de la tabla en Google Sheets
             for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
-                // Validamos que la fila tenga al menos hasta la columna M (operador)
                 if (!cols || cols.length < 13) continue;
 
-                const origen = cols[5] ? cols[5].replace(/"/g, '').trim() : '';     // Columna F
-                const destino = cols[6] ? cols[6].replace(/"/g, '').trim() : '';    // Columna G
-                const vehiculo = cols[7] ? cols[7].replace(/"/g, '').trim() : '';   // Columna H
-                const eco = cols[11] ? cols[11].replace(/"/g, '').trim() : '';      // Columna L (Eco Tracto)
-                const operador = cols[12] ? cols[12].replace(/"/g, '').trim() : ''; // Columna M (Operador)
-                const observaciones = cols[4] ? cols[4].replace(/"/g, '').trim() : '-'; // Columna E
+                const origen = cols[5] ? cols[5].trim() : '';     // Columna F
+                const destino = cols[6] ? cols[6].trim() : '';    // Columna G
+                const vehiculo = cols[7] ? cols[7].trim() : '';   // Columna H
+                const eco = cols[11] ? cols[11].trim() : '';      // Columna L (Eco Tracto)
+                const operador = cols[12] ? cols[12].trim() : ''; // Columna M (Operador)
+                const observaciones = cols[4] ? cols[4].trim() : '-'; // Columna E
 
-                // Si no hay destino, saltamos la fila vacía
-                if (!destino || destino === '') continue;
+                // Si no hay destino o está vacío, saltamos la fila
+                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
 
-                // Verificamos si falta operador o económico
-                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || !eco || eco === '-' || eco === 'nan' || eco === '');
+                // Validamos si falta operador o económico real
+                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || !eco || eco === '-' || eco === 'nan' || eco === '' || operador.includes('<'));
 
                 trips.push({
                     origen: origen || 'Cedis Tultitlán',
