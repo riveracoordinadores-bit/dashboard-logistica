@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Operativo Logístico — Entrega de Turno</title>
+    <!-- Librería PapaParse para lectura rápida y segura de CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -116,7 +118,7 @@
             cursor: pointer;
         }
 
-        /* RESUMEN EJECUTIVO */
+        /* RESUMEN EJECUTIVO / ENTREGA DE TURNO */
         .executive-summary {
             background: var(--card-bg);
             border: 2px solid var(--accent);
@@ -296,7 +298,7 @@
         </div>
     </div>
 
-    <!-- RESUMEN EJECUTIVO -->
+    <!-- RESUMEN EJECUTIVO / ENTREGA DE TURNO -->
     <div class="executive-summary">
         <h2>📋 Resumen Ejecutivo — Entrega de Turno</h2>
         
@@ -350,24 +352,26 @@
             btn.innerHTML = body.classList.contains('light-theme') ? '☀️ Modo Día' : '🌙 Modo Noche';
         }
 
-        async function loadLogisticsData() {
-            // Usamos la API pública de OpenSheet en JSON para evitar bloqueos CORS definitivamente
-            const spreadsheetId = '2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G';
-            const url = `https://opensheet.elk.sh/${spreadsheetId}/10%20MARTES`;
+        function loadLogisticsData() {
+            // URL limpia y directa del CSV publicado en Google Sheets con proxy universal integrado (allorigins)
+            const rawCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rawCsvUrl);
 
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data && data.length > 0) {
-                    parseJsonData(data);
-                } else {
-                    showError("No se encontraron registros en la hoja.");
+            Papa.parse(proxyUrl, {
+                download: true,
+                header: false,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        parseCSVAndRender(results.data);
+                    } else {
+                        showError("No se encontraron registros en la hoja.");
+                    }
+                },
+                error: function(err) {
+                    console.error("Error PapaParse:", err);
+                    showError("Error de conexión al cargar el CSV.");
                 }
-            } catch (error) {
-                console.error(error);
-                showError("Error de conexión al cargar la hoja.");
-            }
+            });
         }
 
         function showError(msg) {
@@ -375,140 +379,27 @@
             document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
         }
 
-        function parseJsonData(rows) {
+        function parseCSVAndRender(rows) {
             allTripsData = [];
             const datesSet = new Set();
 
-            rows.forEach(row => {
-                // Leemos directamente por los nombres exactos de tus columnas en el Excel
-                const fecha = row['FECHA'] ? row['FECHA'].trim() : '';
-                const observacion = row['OBSERVACIONES'] ? row['OBSERVACIONES'].trim() : '-';
-                const origen = row['ORIGEN'] ? row['ORIGEN'].trim() : '';
-                const destino = row['DESTINO'] ? row['DESTINO'].trim() : '';
-                const vehiculo = row['TIPO DE VEHÍCULO'] ? row['TIPO DE VEHÍCULO'].trim() : '';
-                const eco = row['ECO TRACTO'] ? row['ECO TRACTO'].trim() : '';
-                const operador = row['NOMBRE DEL OPERADOR'] ? row['NOMBRE DEL OPERADOR'].trim() : '';
+            for (let i = 2; i < rows.length; i++) {
+                const cols = rows[i];
+                if (!cols || cols.length < 14) continue;
 
-                if (!destino || destino === '') return;
+                const fecha = cols[0] ? cols[0].trim() : '';          // Columna A (Fecha principal)
+                const observacion = cols[5] ? cols[5].trim() : '-';   // Columna F (Observaciones)
+                const origen = cols[6] ? cols[6].trim() : '';         // Columna G (Origen)
+                const destino = cols[7] ? cols[7].trim() : '';        // Columna H (Destino)
+                const vehiculo = cols[8] ? cols[8].trim() : '';       // Columna I (Vehículo)
+                const eco = cols[12] ? cols[12].trim() : '';          // Columna M (Eco Tracto)
+                const operador = cols[13] ? cols[13].trim() : '';     // Columna N (Operador)
 
-                if (fecha && fecha !== '-') {
+                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
+
+                if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
                     datesSet.add(fecha);
                 }
 
                 const isCanceled = observacion.toLowerCase().includes('cancel') || observacion.toLowerCase().includes('no realiza');
-                const isMissing = !isCanceled && (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
-
-                let status = 'en-viaje';
-                if (isCanceled) status = 'cancelado';
-                else if (isMissing) status = 'missing';
-
-                allTripsData.push({
-                    fecha: fecha || 'Sin Fecha',
-                    origen: origen || 'Cedis Tultitlán',
-                    destino: destino,
-                    vehiculo: isCanceled ? 'CANCELADO' : (isMissing ? 'SIN ASIGNAR' : (vehiculo || 'TRACTO CAMION')),
-                    eco: eco && eco !== '-' ? eco : 'S/A',
-                    operador: isCanceled ? 'CANCELADO' : (isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador),
-                    observaciones: observacion && observacion !== '' ? observacion : '-',
-                    status: status
-                });
-            });
-
-            populateDateDropdown(Array.from(datesSet));
-            applyDateFilter();
-        }
-
-        function populateDateDropdown(dates) {
-            const select = document.getElementById('dateFilter');
-            const currentValue = select.value;
-            select.innerHTML = '<option value="ALL">Todas las fechas</option>';
-            
-            dates.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d;
-                opt.textContent = d;
-                select.appendChild(opt);
-            });
-
-            if (dates.includes(currentValue)) {
-                select.value = currentValue;
-            }
-        }
-
-        function applyDateFilter() {
-            const selectedDate = document.getElementById('dateFilter').value;
-            if (selectedDate === 'ALL') {
-                renderDashboard(allTripsData);
-            } else {
-                const filtered = allTripsData.filter(item => item.fecha === selectedDate);
-                renderDashboard(filtered);
-            }
-        }
-
-        function renderDashboard(data) {
-            const total = data.length;
-            const missingList = data.filter(item => item.status === 'missing');
-            const activeList = data.filter(item => item.status === 'en-viaje');
-            const canceledList = data.filter(item => item.status === 'cancelado');
-            
-            const activeCount = activeList.length;
-            const missingCount = missingList.length;
-            const canceledCount = canceledList.length;
-            const efficiency = total > 0 ? ((activeCount / total) * 100).toFixed(1) : '0';
-
-            document.getElementById('sum-total').innerText = total;
-            document.getElementById('sum-active').innerText = activeCount;
-            document.getElementById('sum-missing').innerText = missingCount;
-            document.getElementById('sum-canceled').innerText = canceledCount;
-            document.getElementById('sum-percentage').innerText = efficiency + '%';
-            document.getElementById('progress-fill').style.width = efficiency + '%';
-
-            const missingContainer = document.getElementById('missing-grid');
-            missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar para este turno.</p>' : '';
-            missingList.forEach(item => {
-                missingContainer.innerHTML += `
-                    <div class="trip-card missing">
-                        <div class="route">
-                            <span>${item.origen}</span>
-                            <span>➔</span>
-                            <span>${item.destino}</span>
-                        </div>
-                        <div class="details-grid">
-                            <div class="detail-item"><label>Vehículo</label><span><span class="badge missing">SIN ASIGNAR</span></span></div>
-                            <div class="detail-item"><label>Económico</label><span>${item.eco}</span></div>
-                            <div class="detail-item full-width"><label>Operador Asignado</label><span style="color: var(--danger);">${item.operador}</span></div>
-                            <div class="detail-item full-width"><label>Fecha / Obs.</label><span>[${item.fecha}] ${item.observaciones}</span></div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            const activeContainer = document.getElementById('active-grid');
-            const combinedList = [...activeList, ...canceledList];
-            activeContainer.innerHTML = combinedList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades registradas para este turno.</p>' : '';
-            combinedList.forEach(item => {
-                const isCanceled = item.status === 'cancelado';
-                const badgeClass = isCanceled ? 'badge canceled' : (item.vehiculo.toUpperCase().includes('TORTON') ? 'badge torton' : 'badge');
-                
-                activeContainer.innerHTML += `
-                    <div class="trip-card ${isCanceled ? 'canceled' : ''}">
-                        <div class="route">
-                            <span>${item.origen}</span>
-                            <span>➔</span>
-                            <span>${item.destino}</span>
-                        </div>
-                        <div class="details-grid">
-                            <div class="detail-item"><label>Vehículo</label><span><span class="${badgeClass}">${item.vehiculo}</span></span></div>
-                            <div class="detail-item"><label>Económico</label><span>${isCanceled ? 'N/A' : 'Eco. ' + item.eco}</span></div>
-                            <div class="detail-item full-width"><label>Operador</label><span>${item.operador}</span></div>
-                            <div class="detail-item full-width"><label>Fecha / Obs.</label><span>[${item.fecha}] ${item.observaciones}</span></div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        window.onload = loadLogisticsData;
-    </script>
-</body>
-</html>
+                const isMissing = !is
