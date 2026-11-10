@@ -14,6 +14,21 @@
             --success: #22c55e;
             --danger: #ef4444;
             --border: #334155;
+            --route-bg: rgba(255, 255, 255, 0.03);
+            --missing-bg: #2a1215;
+        }
+
+        body.light-theme {
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --border: #cbd5e1;
+            --route-bg: rgba(0, 0, 0, 0.03);
+            --missing-bg: #fef2f2;
         }
 
         * {
@@ -21,6 +36,7 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
         body {
@@ -36,6 +52,8 @@
             margin-bottom: 2.5rem;
             border-bottom: 1px solid var(--border);
             padding-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         header h1 {
@@ -48,7 +66,13 @@
             font-size: 0.95rem;
         }
 
-        .refresh-btn {
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-toggle-btn, .refresh-btn {
             background: var(--accent);
             color: white;
             border: none;
@@ -56,7 +80,12 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            transition: background 0.2s;
+        }
+
+        .theme-toggle-btn {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
         }
 
         .refresh-btn:hover {
@@ -144,7 +173,7 @@
 
         .trip-card.missing {
             border-color: var(--danger);
-            background: #2a1215;
+            background: var(--missing-bg);
         }
 
         .route {
@@ -153,7 +182,7 @@
             align-items: center;
             font-size: 1.05rem;
             font-weight: bold;
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--route-bg);
             padding: 0.75rem 1rem;
             border-radius: 8px;
         }
@@ -188,17 +217,17 @@
             font-weight: bold;
             border-radius: 6px;
             background: rgba(59, 130, 246, 0.15);
-            color: #60a5fa;
+            color: var(--accent);
         }
 
         .badge.torton {
             background: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
+            color: #d97706;
         }
 
         .badge.missing {
             background: rgba(239, 68, 68, 0.2);
-            color: #f87171;
+            color: var(--danger);
         }
 
         .full-width {
@@ -221,7 +250,10 @@
             <h1>Control Operativo Logístico en Vivo</h1>
             <p>Sincronizado con Google Sheets — 10 Martes</p>
         </div>
-        <button class="refresh-btn" onclick="loadLogisticsData()">Actualizar Datos</button>
+        <div class="header-controls">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">🌙 Modo Noche</button>
+            <button class="refresh-btn" onclick="loadLogisticsData()">Actualizar Datos</button>
+        </div>
     </header>
 
     <!-- STATS KPIs -->
@@ -258,20 +290,30 @@
 
     <!-- SCRIPT DE CONEXIÓN CSV EN VIVO -->
     <script>
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.getElementById('themeBtn');
+            body.classList.toggle('light-theme');
+            btn.innerHTML = body.classList.contains('light-theme') ? '☀️ Modo Día' : '🌙 Modo Noche';
+        }
+
         async function loadLogisticsData() {
             try {
-                const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv');
+                // Usamos un proxy directo y transparente para evitar bloqueos CORS
+                const rawCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rawCsvUrl);
+
+                const response = await fetch(proxyUrl);
                 const text = await response.text();
 
-                // Validación de seguridad por si Google Sheets devuelve HTML en lugar de CSV
-                if (text.trim().startsWith('<!DOCTYPE html>') || text.includes('<html')) {
-                    throw new Error("El enlace devolvió HTML en lugar de CSV. Verifica que la hoja esté publicada correctamente.");
+                if (!text || text.includes('<html')) {
+                    throw new Error("El enlace devolvió contenido inválido.");
                 }
 
                 parseCSVAndRender(text);
             } catch (error) {
                 console.error('Error al conectar con Google Sheets:', error);
-                document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger);">Error: No se pudo leer el CSV de Google Sheets. Vuelve a publicarlo en la web.</div>';
+                document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger);">Error: No se pudo leer el CSV de Google Sheets.</div>';
                 document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
             }
         }
@@ -289,89 +331,4 @@
                 const cols = rows[i];
                 if (!cols || cols.length < 13) continue;
 
-                const origen = cols[5] ? cols[5].trim() : '';     // Columna F
-                const destino = cols[6] ? cols[6].trim() : '';    // Columna G
-                const vehiculo = cols[7] ? cols[7].trim() : '';   // Columna H
-                const eco = cols[11] ? cols[11].trim() : '';      // Columna L (Eco Tracto)
-                const operador = cols[12] ? cols[12].trim() : ''; // Columna M (Operador)
-                const observaciones = cols[4] ? cols[4].trim() : '-'; // Columna E
-
-                // Si no hay destino válido, saltamos la fila
-                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
-
-                // Validamos si falta operador o económico
-                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'S/A');
-
-                trips.push({
-                    origen: origen || 'Cedis Tultitlán',
-                    destino: destino,
-                    vehiculo: isMissing ? 'SIN ASIGNAR' : (vehiculo || 'TRACTO CAMION'),
-                    eco: eco && eco !== '-' ? eco : 'S/A',
-                    operador: isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador,
-                    observaciones: observaciones && observaciones !== '' ? observaciones : '-',
-                    status: isMissing ? 'missing' : 'en-viaje'
-                });
-            }
-
-            renderDashboard(trips);
-        }
-
-        function renderDashboard(data) {
-            const total = data.length;
-            const missingList = data.filter(item => item.status === 'missing');
-            const activeList = data.filter(item => item.status === 'en-viaje');
-            const activeCount = activeList.length;
-            const missingCount = missingList.length;
-            const efficiency = total > 0 ? ((activeCount / total) * 100).toFixed(1) + '%' : '0%';
-
-            document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-active').innerText = activeCount;
-            document.getElementById('kpi-missing').innerText = missingCount;
-            document.getElementById('kpi-efficiency').innerText = efficiency;
-
-            const missingContainer = document.getElementById('missing-grid');
-            missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar.</p>' : '';
-            missingList.forEach(item => {
-                missingContainer.innerHTML += `
-                    <div class="trip-card missing">
-                        <div class="route">
-                            <span>${item.origen}</span>
-                            <span class="arrow">➔</span>
-                            <span>${item.destino}</span>
-                        </div>
-                        <div class="details-grid">
-                            <div class="detail-item"><label>Vehículo</label><span><span class="badge missing">SIN ASIGNAR</span></span></div>
-                            <div class="detail-item"><label>Económico</label><span>${item.eco}</span></div>
-                            <div class="detail-item full-width"><label>Operador Asignado</label><span style="color: var(--danger);">${item.operador}</span></div>
-                            <div class="detail-item full-width"><label>Observaciones</label><span>${item.observaciones}</span></div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            const activeContainer = document.getElementById('active-grid');
-            activeContainer.innerHTML = activeList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades registradas en viaje.</p>' : '';
-            activeList.forEach(item => {
-                const badgeClass = item.vehiculo.toUpperCase().includes('TORTON') ? 'badge torton' : 'badge';
-                activeContainer.innerHTML += `
-                    <div class="trip-card">
-                        <div class="route">
-                            <span>${item.origen}</span>
-                            <span class="arrow">➔</span>
-                            <span>${item.destino}</span>
-                        </div>
-                        <div class="details-grid">
-                            <div class="detail-item"><label>Vehículo</label><span><span class="${badgeClass}">${item.vehiculo}</span></span></div>
-                            <div class="detail-item"><label>Económico</label><span>Eco. ${item.eco}</span></div>
-                            <div class="detail-item full-width"><label>Operador</label><span>${item.operador}</span></div>
-                            <div class="detail-item full-width"><label>Observaciones</label><span>${item.observaciones}</span></div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        window.onload = loadLogisticsData;
-    </script>
-</body>
-</html>
+                const origen = cols[5] ? cols[5].trim() : '';      // Columna F
