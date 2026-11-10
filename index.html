@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Operativo Logístico — Entrega de Turno</title>
+    <!-- Importamos PapaParse para lectura ultra rápida y segura -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -350,33 +352,32 @@
             btn.innerHTML = body.classList.contains('light-theme') ? '☀️ Modo Día' : '🌙 Modo Noche';
         }
 
-        async function loadLogisticsData() {
-            try {
-                // Usamos un proxy público ligero para saltar cualquier restricción CORS de GitHub -> Google
-                const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
-                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(csvUrl);
-                
-                const response = await fetch(proxyUrl);
-                const text = await response.text();
+        function loadLogisticsData() {
+            const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
 
-                if (!text || text.includes('<!DOCTYPE html>')) {
-                    throw new Error("Error al leer el formato CSV.");
+            Papa.parse(csvUrl, {
+                download: true,
+                header: false,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        parseCSVAndRender(results.data);
+                    } else {
+                        showError("No se encontraron registros en la hoja.");
+                    }
+                },
+                error: function(err) {
+                    console.error(err);
+                    showError("Error al conectar con Google Sheets.");
                 }
-
-                parseCSVAndRender(text);
-            } catch (error) {
-                console.error(error);
-                document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger);">Error al cargar los datos. Revisa la publicación de Google Sheets.</div>';
-                document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
-            }
+            });
         }
 
-        function parseCSVAndRender(text) {
-            const rows = text.split('\n').map(row => {
-                const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
-                return matches.map(val => val.replace(/^"|"$/g, '').trim());
-            });
+        function showError(msg) {
+            document.getElementById('missing-grid').innerHTML = `<div class="loading" style="color:var(--danger);">${msg}</div>`;
+            document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
+        }
 
+        function parseCSVAndRender(rows) {
             allTripsData = [];
             const datesSet = new Set();
 
@@ -390,6 +391,4 @@
                 const destino = cols[7] ? cols[7].trim() : '';        // Columna H
                 const vehiculo = cols[8] ? cols[8].trim() : '';       // Columna I
                 const eco = cols[12] ? cols[12].trim() : '';          // Columna M
-                const operador = cols[13] ? cols[13].trim() : '';     // Columna N
-
-                if (!destino || destino === '' || destino.toLowerCase().includes
+                const operador = cols
