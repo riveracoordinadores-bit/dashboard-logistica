@@ -76,17 +76,7 @@
             gap: 1rem;
         }
 
-        .theme-toggle-btn {
-            background: var(--card-bg);
-            color: var(--text-main);
-            border: 1px solid var(--border);
-            padding: 0.6rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .refresh-btn {
+        .theme-toggle-btn, .refresh-btn {
             background: var(--accent);
             color: white;
             border: none;
@@ -94,6 +84,12 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
+        }
+
+        .theme-toggle-btn {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
         }
 
         .filter-bar {
@@ -238,4 +234,162 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size:
+            font-size: 1.05rem;
+            font-weight: bold;
+            background: var(--route-bg);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .detail-item label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.2rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+            border-radius: 6px;
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .badge.torton { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+        .badge.missing { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .badge.canceled { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+
+        .full-width { grid-column: span 2; }
+        .loading { text-align: center; padding: 3rem; color: var(--text-muted); grid-column: 1 / -1; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>Control Operativo Logístico en Vivo</h1>
+            <p>Sincronizado con Google Sheets — Entrega de Turno</p>
+        </div>
+        <div class="header-controls">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">🌙 Modo Noche</button>
+            <button class="refresh-btn" onclick="loadLogisticsData()">Actualizar Datos</button>
+        </div>
+    </header>
+
+    <div class="filter-bar">
+        <div>
+            <label for="dateFilter"><b>📅 SELECCIONAR FECHA DE TURNO (COLUMNA A):</b> </label>
+            <select id="dateFilter" onchange="applyDateFilter()">
+                <option value="ALL">Todas las fechas</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- RESUMEN EJECUTIVO -->
+    <div class="executive-summary">
+        <h2>📋 Resumen Ejecutivo — Entrega de Turno</h2>
+        
+        <div class="summary-grid">
+            <div class="summary-item">
+                <label>Servicios Programados</label>
+                <div class="val" id="sum-total">0</div>
+            </div>
+            <div class="summary-item">
+                <label>Unidades en Tránsito</label>
+                <div class="val success" id="sum-active">0</div>
+            </div>
+            <div class="summary-item">
+                <label>Faltantes por Asignar</label>
+                <div class="val danger" id="sum-missing">0</div>
+            </div>
+            <div class="summary-item">
+                <label>Cancelados / Incidencias</label>
+                <div class="val warning" id="sum-canceled">0</div>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-label">
+                <span>Nivel de Asignación / Cumplimiento del Turno</span>
+                <b id="sum-percentage">0%</b>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-title">⚠️ Unidades Faltantes por Asignar Viaje</h2>
+    <div class="grid-container" id="missing-grid">
+        <div class="loading">Conectando con Google Sheets...</div>
+    </div>
+
+    <h2 class="section-title">🚛 Unidades Activas en Viaje</h2>
+    <div class="grid-container" id="active-grid">
+        <div class="loading">Conectando con Google Sheets...</div>
+    </div>
+
+    <script>
+        let allTripsData = [];
+
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.getElementById('themeBtn');
+            body.classList.toggle('light-theme');
+            btn.innerHTML = body.classList.contains('light-theme') ? '☀️ Modo Día' : '🌙 Modo Noche';
+        }
+
+        async function loadLogisticsData() {
+            try {
+                // Usamos un proxy público ligero para saltar cualquier restricción CORS de GitHub -> Google
+                const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(csvUrl);
+                
+                const response = await fetch(proxyUrl);
+                const text = await response.text();
+
+                if (!text || text.includes('<!DOCTYPE html>')) {
+                    throw new Error("Error al leer el formato CSV.");
+                }
+
+                parseCSVAndRender(text);
+            } catch (error) {
+                console.error(error);
+                document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger);">Error al cargar los datos. Revisa la publicación de Google Sheets.</div>';
+                document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
+            }
+        }
+
+        function parseCSVAndRender(text) {
+            const rows = text.split('\n').map(row => {
+                const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
+                return matches.map(val => val.replace(/^"|"$/g, '').trim());
+            });
+
+            allTripsData = [];
+            const datesSet = new Set();
+
+            for (let i = 2; i < rows.length; i++) {
+                const cols = rows[i];
+                if (!cols || cols.length < 14) continue;
+
+                const fecha = cols[0] ? cols[0].trim() : '';          // Columna A
+                const observacion = cols[5] ? cols[5].trim() : '-';   // Columna F
+                const origen = cols[6] ? cols[6].trim() : '';         // Columna G
+                const destino = cols[7] ? cols[7].trim() : '';        // Columna H
+                const vehiculo = cols[8] ? cols[8].trim() : '';       // Columna I
+                const eco = cols[12] ? cols[12].trim() : '';          // Columna M
+                const operador = cols[13] ? cols[13].trim() : '';     // Columna N
+
+                if (!destino || destino === '' || destino.toLowerCase().includes
