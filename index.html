@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Logístico en Vivo — 10 Martes</title>
+    <!-- Librería PapaParse para lectura robusta de CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -288,7 +290,7 @@
         <div class="loading">Conectando con Google Sheets...</div>
     </div>
 
-    <!-- SCRIPT DE CONEXIÓN CSV EN VIVO -->
+    <!-- SCRIPT DE CONEXIÓN PAPAPARSE -->
     <script>
         function toggleTheme() {
             const body = document.body;
@@ -297,32 +299,33 @@
             btn.innerHTML = body.classList.contains('light-theme') ? '☀️ Modo Día' : '🌙 Modo Noche';
         }
 
-        async function loadLogisticsData() {
-            try {
-                const rawCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
-                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rawCsvUrl);
+        function loadLogisticsData() {
+            const rawCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpylXyOa4ryRGRh2vYHdH-9O8u4NaqDRFO9wl3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rawCsvUrl);
 
-                const response = await fetch(proxyUrl);
-                const text = await response.text();
-
-                if (!text || text.includes('<html')) {
-                    throw new Error("El enlace devolvió contenido inválido.");
+            Papa.parse(proxyUrl, {
+                download: true,
+                header: false,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        parseCSVAndRender(results.data);
+                    } else {
+                        showError("No se encontraron registros en la hoja.");
+                    }
+                },
+                error: function(err) {
+                    console.error("Error PapaParse:", err);
+                    showError("Error de conexión al cargar el CSV.");
                 }
-
-                parseCSVAndRender(text);
-            } catch (error) {
-                console.error('Error al conectar con Google Sheets:', error);
-                document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger);">Error: No se pudo leer el CSV de Google Sheets.</div>';
-                document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
-            }
+            });
         }
 
-        function parseCSVAndRender(text) {
-            const rows = text.split('\n').map(row => {
-                const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
-                return matches.map(val => val.replace(/^"|"$/g, '').trim());
-            });
+        function showError(msg) {
+            document.getElementById('missing-grid').innerHTML = `<div class="loading" style="color:var(--danger);">${msg}</div>`;
+            document.getElementById('active-grid').innerHTML = '<div class="loading">Sin datos disponibles.</div>';
+        }
 
+        function parseCSVAndRender(rows) {
             const trips = [];
 
             for (let i = 2; i < rows.length; i++) {
