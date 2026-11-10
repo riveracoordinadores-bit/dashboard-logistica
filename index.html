@@ -461,4 +461,38 @@
                             <span>${item.destino}</span>
                         </div>
                         <div class="details-grid">
-                            <div class="detail-item"><label>Vehículo</label><span><span class="badge missing">SIN ASIGNAR
+                            <div class="detail-item"><label>Vehículo</label><span><span class="badge missing">SIN ASIGNAR</span></span></div>
+                            <div class="detail-item"><label>Económico</label><span>${item.eco}</span></div>
+                            <div class="detail-item full-width"><label>Operador Asignado</label><span style="color: var(--danger);">${item.operador}</span></div>
+                            <div class="detail-item full-width"><label>Fecha / Obs.</label><span>[${item.fecha}] ${item.observaciones}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const activeContainer = document.getElementById('active-grid');
+            activeContainer.innerHTML = activeList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades registradas en viaje para esta fecha.</p>' : '';
+            activeList.forEach(item => {
+                const badgeClass = item.vehiculo.toUpperCase().includes('TORTON') ? 'badge torton' : 'badge';
+                activeContainer.innerHTML += `
+                    <div class="trip-card">
+                        <div class="route">
+                            <span>${item.origen}</span>
+                            <span class="arrow">➔</span>
+                            <span>${item.destino}</span>
+                        </div>
+                        <div class="details-grid">
+                            <div class="detail-item"><label>Vehículo</label><span><span class="${badgeClass}">${item.vehiculo}</span></span></div>
+                            <div class="detail-item"><label>Económico</label><span>Eco. ${item.eco}</span></div>
+                            <div class="detail-item full-width"><label>Operador</label><span>${item.operador}</span></div>
+                            <div class="detail-item full-width"><label>Fecha / Obs.</label><span>[${item.fecha}] ${item.observaciones}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        window.onload = loadLogisticsData;
+    </script>
+</body>
+</html>
