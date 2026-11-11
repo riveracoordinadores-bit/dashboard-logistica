@@ -3,33 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Logístico en Vivo — 10 Martes</title>
+<title>Dashboard Logístico en Vivo — Rivera Transportes</title>
 <style>
 :root{--bg-color:#0f172a;--card-bg:#1e293b;--text-main:#f8fafc;--text-muted:#94a3b8;--accent:#3b82f6;--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--border:#334155;--input-bg:#0f172a;--missing-bg:#2a1215}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
 body{background:var(--bg-color);color:var(--text-main);padding:2rem}
+
 header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;border-bottom:1px solid var(--border);padding-bottom:1rem;flex-wrap:wrap;gap:1rem}
-header h1{font-size:1.8rem;font-weight:700}
-header p{color:var(--text-muted);font-size:.95rem}
-.refresh-btn{background:var(--accent);color:#fff;border:none;padding:.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:600}
+
+/* CONTENEDOR DE IMAGEN DE LOGO */
+.brand-container {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.brand-logo-img {
+    height: 55px;
+    width: auto;
+    object-fit: contain;
+    background: #ffffff;
+    padding: 4px 8px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+header h1{font-size:1.4rem;font-weight:700; margin-bottom: 0.2rem;}
+header p{color:var(--text-muted);font-size:.85rem}
+
+.refresh-btn{background:var(--accent);color:#fff;border:none;padding:.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:600; transition: background 0.2s;}
 .refresh-btn:hover{background:#2563eb}
+
 .filter-bar{background:var(--card-bg);border:1px solid var(--border);padding:1rem 1.5rem;border-radius:12px;margin-bottom:2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
 .filter-bar label{font-size:.9rem;color:var(--text-muted);font-weight:bold}
 .filter-bar select{background:var(--input-bg);color:var(--text-main);border:1px solid var(--border);padding:.5rem 1rem;border-radius:8px;font-size:.95rem;cursor:pointer}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin-bottom:3rem}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;margin-bottom:3rem}
 .stat-card{background:var(--card-bg);border:1px solid var(--border);padding:1.5rem;border-radius:14px;position:relative;overflow:hidden}
 .stat-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent)}
 .stat-card.success::after{background:var(--success)}
 .stat-card.warning::after{background:var(--warning)}
 .stat-card.danger::after{background:var(--danger)}
-.stat-card h3{font-size:.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+.stat-card h3{font-size:.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
 .stat-card .number{font-size:2.2rem;font-weight:bold}
+
 .section-title{font-size:1.3rem;margin-bottom:1.5rem;border-bottom:2px solid var(--border);padding-bottom:.5rem}
 .table-container{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;overflow-x:auto;margin-bottom:3rem}
 .logistics-table{width:100%;border-collapse:collapse;text-align:left;font-size:.95rem}
 .logistics-table th,.logistics-table td{padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
 .logistics-table th{background:rgba(59,130,246,.1);text-transform:uppercase;font-size:.75rem;letter-spacing:.05em}
 .logistics-table tr:last-child td{border-bottom:none}
+
 .grid-container{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.5rem;margin-bottom:3rem}
 .trip-card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:1.5rem;display:flex;flex-direction:column;gap:1.2rem}
 .trip-card.missing{border-color:var(--danger);background:var(--missing-bg)}
@@ -48,11 +72,15 @@ header p{color:var(--text-muted);font-size:.95rem}
 <body>
 
 <header>
-  <div>
-    <h1>Control Operativo Logístico en Vivo</h1>
-    <p>Sincronizado con Google Sheets — 10 Martes</p>
-  </div>
-  <button class="refresh-btn" onclick="loadLogisticsData()">Actualizar Datos</button>
+    <div class="brand-container">
+        <!-- Imagen oficial de Rivera Transportes -->
+        <img src="https://raw.githubusercontent.com/riveracoordinadores-bit/dashboard-logistica/main/WhatsApp%20Image%202026-11-06%20at%209.35.48%20AM.jpeg" alt="Rivera Transportes" class="brand-logo-img" onerror="this.style.display='none'">
+        <div>
+            <h1>Control Operativo en Vivo</h1>
+            <p>Sincronizado con Google Sheets — 10 Martes</p>
+        </div>
+    </div>
+    <button class="refresh-btn" onclick="loadLogisticsData()">Actualizar Datos</button>
 </header>
 
 <div class="filter-bar">
@@ -97,9 +125,8 @@ header p{color:var(--text-muted);font-size:.95rem}
 <script>
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
 
-// Índices de columna (A=0). Ajusta aquí si cambian en la hoja.
 const COL = { fecha:0, obs:5, obs2:25, origen:6, destino:7, eco:12, operador:13, marchamos:14, salida:18, retorno:23, llegada:24 };
-const START_ROW = 2; // se omiten las primeras 2 filas (encabezados)
+const START_ROW = 2;
 
 let allTripsData = [];
 
@@ -117,7 +144,6 @@ async function loadLogisticsData() {
   }
 }
 
-// Parser CSV completo: respeta comillas, "" escapadas y saltos de línea dentro de celdas
 function parseCSV(text) {
   const rows = []; let row = [], cur = '', q = false;
   for (let i = 0; i < text.length; i++) {
@@ -136,7 +162,6 @@ function parseCSV(text) {
   return rows;
 }
 
-// "PE" (pendiente), "-", "0", "N/A", etc. cuentan como vacío
 function hasValue(v) {
   if (v === undefined || v === null) return false;
   const s = String(v).trim();
@@ -173,7 +198,6 @@ function parseCSVAndRender(text) {
     const eco = cols[COL.eco], operador = cols[COL.operador];
     const isMissing = !hasValue(operador) || !hasValue(eco) || /^s\/a$/i.test(operador) || /^s\/a$/i.test(eco);
 
-    // La etapa más avanzada del ciclo gana: llegada > retorno > salida
     let status = 'missing';
     if (!isMissing) {
       if (hasValue(cols[COL.llegada])) status = 'disponible';
@@ -196,8 +220,6 @@ function parseCSVAndRender(text) {
     });
   }
 
-  console.log(`Filas leídas: ${rows.length} | Servicios: ${allTripsData.length} | Omitidas: ${skipped}`);
-  console.table(allTripsData.slice(0, 15));
   document.getElementById('debug').textContent =
     `Filas del CSV: ${rows.length} · Servicios válidos: ${allTripsData.length} · Omitidas: ${skipped}`;
 
