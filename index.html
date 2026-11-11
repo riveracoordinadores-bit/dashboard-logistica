@@ -1,581 +1,272 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Logístico en Vivo — 10 Martes</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #3b82f6;
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --border: #334155;
-            --input-bg: #0f172a;
-            --missing-bg: #2a1215;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 2rem;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        header h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-        }
-
-        header p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
-
-        .refresh-btn {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-
-        .refresh-btn:hover {
-            background: #2563eb;
-        }
-
-        /* BARRA DE FILTRO POR FECHA */
-        .filter-bar {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .filter-bar label {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            font-weight: bold;
-        }
-
-        .filter-bar select {
-            background: var(--input-bg);
-            color: var(--text-main);
-            border: 1px solid var(--border);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            outline: none;
-            cursor: pointer;
-        }
-
-        /* STATS GRID */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 3rem;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            padding: 1.5rem;
-            border-radius: 14px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--accent);
-        }
-
-        .stat-card.success::after { background: var(--success); }
-        .stat-card.warning::after { background: var(--warning); }
-        .stat-card.danger::after { background: var(--danger); }
-
-        .stat-card h3 {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-card .number {
-            font-size: 2.2rem;
-            font-weight: bold;
-        }
-
-        /* SECTION TITLE */
-        .section-title {
-            font-size: 1.3rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 0.5rem;
-        }
-
-        /* TABLAS DE CICLO DE UNIDADES */
-        .table-container {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            overflow-x: auto;
-            margin-bottom: 3rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .logistics-table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 0.95rem;
-        }
-
-        .logistics-table th, .logistics-table td {
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .logistics-table th {
-            background-color: rgba(59, 130, 246, 0.1);
-            color: var(--text-main);
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-        }
-
-        .logistics-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .logistics-table tr:hover td {
-            background-color: rgba(255, 255, 255, 0.02);
-        }
-
-        /* CSS GRID FOR CARDS (Faltantes) */
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 3rem;
-        }
-
-        .trip-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 1.2rem;
-        }
-
-        .trip-card.missing {
-            border-color: var(--danger);
-            background: var(--missing-bg);
-        }
-
-        .route {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1.05rem;
-            font-weight: bold;
-            background: rgba(255, 255, 255, 0.03);
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-        }
-
-        .route span.arrow {
-            color: var(--accent);
-        }
-
-        .details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            font-size: 0.9rem;
-        }
-
-        .detail-item label {
-            display: block;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-bottom: 0.2rem;
-        }
-
-        .detail-item span {
-            font-weight: 600;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.6rem;
-            font-size: 0.75rem;
-            font-weight: bold;
-            border-radius: 6px;
-            background: rgba(59, 130, 246, 0.15);
-            color: #60a5fa;
-        }
-
-        .badge.missing {
-            background: rgba(239, 68, 68, 0.2);
-            color: #f87171;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-muted);
-            font-size: 1rem;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Logístico en Vivo — 10 Martes</title>
+<style>
+:root{--bg-color:#0f172a;--card-bg:#1e293b;--text-main:#f8fafc;--text-muted:#94a3b8;--accent:#3b82f6;--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--border:#334155;--input-bg:#0f172a;--missing-bg:#2a1215}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+body{background:var(--bg-color);color:var(--text-main);padding:2rem}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;border-bottom:1px solid var(--border);padding-bottom:1rem;flex-wrap:wrap;gap:1rem}
+header h1{font-size:1.8rem;font-weight:700}
+header p{color:var(--text-muted);font-size:.95rem}
+.refresh-btn{background:var(--accent);color:#fff;border:none;padding:.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:600}
+.refresh-btn:hover{background:#2563eb}
+.filter-bar{background:var(--card-bg);border:1px solid var(--border);padding:1rem 1.5rem;border-radius:12px;margin-bottom:2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.filter-bar label{font-size:.9rem;color:var(--text-muted);font-weight:bold}
+.filter-bar select{background:var(--input-bg);color:var(--text-main);border:1px solid var(--border);padding:.5rem 1rem;border-radius:8px;font-size:.95rem;cursor:pointer}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin-bottom:3rem}
+.stat-card{background:var(--card-bg);border:1px solid var(--border);padding:1.5rem;border-radius:14px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent)}
+.stat-card.success::after{background:var(--success)}
+.stat-card.warning::after{background:var(--warning)}
+.stat-card.danger::after{background:var(--danger)}
+.stat-card h3{font-size:.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+.stat-card .number{font-size:2.2rem;font-weight:bold}
+.section-title{font-size:1.3rem;margin-bottom:1.5rem;border-bottom:2px solid var(--border);padding-bottom:.5rem}
+.table-container{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;overflow-x:auto;margin-bottom:3rem}
+.logistics-table{width:100%;border-collapse:collapse;text-align:left;font-size:.95rem}
+.logistics-table th,.logistics-table td{padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+.logistics-table th{background:rgba(59,130,246,.1);text-transform:uppercase;font-size:.75rem;letter-spacing:.05em}
+.logistics-table tr:last-child td{border-bottom:none}
+.grid-container{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.5rem;margin-bottom:3rem}
+.trip-card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:1.5rem;display:flex;flex-direction:column;gap:1.2rem}
+.trip-card.missing{border-color:var(--danger);background:var(--missing-bg)}
+.route{display:flex;justify-content:space-between;align-items:center;font-size:1.05rem;font-weight:bold;background:rgba(255,255,255,.03);padding:.75rem 1rem;border-radius:8px}
+.route .arrow{color:var(--accent)}
+.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.9rem}
+.detail-item.full-width{grid-column:1/-1}
+.detail-item label{display:block;font-size:.75rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:.2rem}
+.detail-item span{font-weight:600}
+.badge{display:inline-block;padding:.25rem .6rem;font-size:.75rem;font-weight:bold;border-radius:6px;background:rgba(59,130,246,.15);color:#60a5fa}
+.badge.missing{background:rgba(239,68,68,.2);color:#f87171}
+.loading{text-align:center;padding:2rem;color:var(--text-muted)}
+.debug{color:var(--text-muted);font-size:.8rem;margin-top:1rem;text-align:center}
+</style>
 </head>
 <body>
 
-    <header>
-        <div>
-            <h1>Control Operativo Logístico en Vivo</h1>
-            <p>Sincronizado con Google Sheets — 10 Martes</p>
+<header>
+  <div>
+    <h1>Control Operativo Logístico en Vivo</h1>
+    <p>Sincronizado con Google Sheets — 10 Martes</p>
+  </div>
+  <button class="refresh-btn" onclick="loadLogisticsData()">Actualizar Datos</button>
+</header>
+
+<div class="filter-bar">
+  <label for="dateFilter">📅 SELECCIONAR FECHA DE TURNO (COLUMNA A):</label>
+  <select id="dateFilter" onchange="applyDateFilter()">
+    <option value="ALL">Todas las fechas</option>
+  </select>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card"><h3>Total de Servicios</h3><div class="number" id="kpi-total">0</div></div>
+  <div class="stat-card success"><h3>Unidades en Ruta</h3><div class="number" id="kpi-route">0</div></div>
+  <div class="stat-card warning"><h3>En Retorno a CEDIS</h3><div class="number" id="kpi-return">0</div></div>
+  <div class="stat-card success"><h3>Disponibles Planear</h3><div class="number" id="kpi-available">0</div></div>
+  <div class="stat-card"><h3>Por salir</h3><div class="number" id="kpi-pending">0</div></div>
+  <div class="stat-card danger"><h3>Faltantes Asignar</h3><div class="number" id="kpi-missing">0</div></div>
+</div>
+
+<h2 class="section-title">⚠️ Unidades Faltantes por Asignar Viaje</h2>
+<div class="grid-container" id="missing-grid"><div class="loading">Conectando con Google Sheets...</div></div>
+
+<h2 class="section-title">🚛 1. Unidades en Ruta (Salida Custodia)</h2>
+<div class="table-container"><table class="logistics-table">
+  <thead><tr><th>Nombre del Operador</th><th>Marchamos</th><th>Origen</th><th>Destino</th></tr></thead>
+  <tbody id="table-route-body"><tr><td colspan="4" class="loading">Cargando datos...</td></tr></tbody>
+</table></div>
+
+<h2 class="section-title">🔄 2. Unidades en Retorno a CEDIS Tulti (Regresa Vacío)</h2>
+<div class="table-container"><table class="logistics-table">
+  <thead><tr><th>Nombre del Operador</th><th>Marchamos</th><th>Origen</th><th>Destino</th></tr></thead>
+  <tbody id="table-return-body"><tr><td colspan="4" class="loading">Cargando datos...</td></tr></tbody>
+</table></div>
+
+<h2 class="section-title">🟢 3. Unidades Disponibles por Planear (Llegada Vacío)</h2>
+<div class="table-container"><table class="logistics-table">
+  <thead><tr><th>Nombre del Operador</th><th>Marchamos</th><th>Origen</th><th>Destino</th></tr></thead>
+  <tbody id="table-available-body"><tr><td colspan="4" class="loading">Cargando datos...</td></tr></tbody>
+</table></div>
+
+<div class="debug" id="debug"></div>
+
+<script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv';
+
+// Índices de columna (A=0). Ajusta aquí si cambian en la hoja.
+const COL = { fecha:0, obs:5, obs2:25, origen:6, destino:7, eco:12, operador:13, marchamos:14, salida:18, retorno:23, llegada:24 };
+const START_ROW = 2; // se omiten las primeras 2 filas (encabezados)
+
+let allTripsData = [];
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function loadLogisticsData() {
+  try {
+    const res = await fetch(CSV_URL + '&t=' + Date.now());
+    const text = await res.text();
+    if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('El enlace devolvió HTML en lugar de CSV.');
+    parseCSVAndRender(text);
+  } catch (e) {
+    console.error(e);
+    document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger)">Error al leer Google Sheets.</div>';
+  }
+}
+
+// Parser CSV completo: respeta comillas, "" escapadas y saltos de línea dentro de celdas
+function parseCSV(text) {
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i+1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur.trim()); cur = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i+1] === '\n') i++;
+      row.push(cur.trim()); rows.push(row); row = []; cur = '';
+    } else cur += c;
+  }
+  if (cur !== '' || row.length) { row.push(cur.trim()); rows.push(row); }
+  return rows;
+}
+
+// "PE" (pendiente), "-", "0", "N/A", etc. cuentan como vacío
+function hasValue(v) {
+  if (v === undefined || v === null) return false;
+  const s = String(v).trim();
+  return s !== '' && !/^(-+|0|nan|n\/a|s\/a|pe|#.*)$/i.test(s);
+}
+
+function parseDate(s) {
+  const m = String(s).match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (m) { let y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[2]-1, +m[1]).getTime(); }
+  const t = Date.parse(s);
+  return isNaN(t) ? 0 : t;
+}
+
+function isToday(s) {
+  const t = parseDate(s); if (!t) return false;
+  return new Date(t).toDateString() === new Date().toDateString();
+}
+
+function parseCSVAndRender(text) {
+  const rows = parseCSV(text);
+  allTripsData = [];
+  const datesSet = new Set();
+  let skipped = 0;
+
+  for (let i = START_ROW; i < rows.length; i++) {
+    const cols = rows[i];
+    if (cols.length < COL.obs2 + 1) { cols.length = COL.obs2 + 1; for (let k=0;k<cols.length;k++) if (cols[k]===undefined) cols[k]=''; }
+    if (cols.every(c => c === '')) continue;
+
+    const fecha = cols[COL.fecha];
+    const destino = cols[COL.destino];
+    if (!destino || /destino|asignada/i.test(destino)) { skipped++; continue; }
+
+    const eco = cols[COL.eco], operador = cols[COL.operador];
+    const isMissing = !hasValue(operador) || !hasValue(eco) || /^s\/a$/i.test(operador) || /^s\/a$/i.test(eco);
+
+    // La etapa más avanzada del ciclo gana: llegada > retorno > salida
+    let status = 'missing';
+    if (!isMissing) {
+      if (hasValue(cols[COL.llegada])) status = 'disponible';
+      else if (hasValue(cols[COL.retorno])) status = 'retorno';
+      else if (hasValue(cols[COL.salida])) status = 'en-ruta';
+      else status = 'pendiente-ruta';
+    }
+
+    if (fecha && fecha !== '-' && !/fecha/i.test(fecha)) datesSet.add(fecha);
+
+    allTripsData.push({
+      fecha: fecha || 'Sin Fecha',
+      origen: cols[COL.origen] || 'Cedis Tultitlán',
+      destino,
+      eco: hasValue(eco) ? eco : 'S/A',
+      operador: isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador,
+      marchamos: hasValue(cols[COL.marchamos]) ? cols[COL.marchamos] : '-',
+      observaciones: [cols[COL.obs], cols[COL.obs2]].filter(hasValue).join(' · ') || '-',
+      status
+    });
+  }
+
+  console.log(`Filas leídas: ${rows.length} | Servicios: ${allTripsData.length} | Omitidas: ${skipped}`);
+  console.table(allTripsData.slice(0, 15));
+  document.getElementById('debug').textContent =
+    `Filas del CSV: ${rows.length} · Servicios válidos: ${allTripsData.length} · Omitidas: ${skipped}`;
+
+  populateDateDropdown(Array.from(datesSet));
+  applyDateFilter();
+}
+
+function populateDateDropdown(dates) {
+  const select = document.getElementById('dateFilter');
+  const prev = select.value;
+  dates.sort((a, b) => parseDate(a) - parseDate(b));
+  select.innerHTML = '<option value="ALL">Todas las fechas</option>' +
+    dates.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+
+  if (prev && dates.includes(prev)) select.value = prev;
+  else {
+    const today = dates.find(isToday);
+    select.value = today || 'ALL';
+  }
+}
+
+function applyDateFilter() {
+  const sel = document.getElementById('dateFilter').value;
+  renderDashboard(sel === 'ALL' ? allTripsData : allTripsData.filter(x => x.fecha === sel));
+}
+
+function renderDashboard(data) {
+  const by = s => data.filter(x => x.status === s);
+  const missing = by('missing'), route = by('en-ruta'), ret = by('retorno'),
+        avail = by('disponible'), pend = by('pendiente-ruta');
+
+  document.getElementById('kpi-total').innerText = data.length;
+  document.getElementById('kpi-route').innerText = route.length;
+  document.getElementById('kpi-return').innerText = ret.length;
+  document.getElementById('kpi-available').innerText = avail.length;
+  document.getElementById('kpi-pending').innerText = pend.length;
+  document.getElementById('kpi-missing').innerText = missing.length;
+
+  document.getElementById('missing-grid').innerHTML = missing.length === 0
+    ? '<p style="color:var(--text-muted)">No hay unidades pendientes de asignar para esta fecha.</p>'
+    : missing.map(i => `
+      <div class="trip-card missing">
+        <div class="route"><span>${esc(i.origen)}</span><span class="arrow">➔</span><span>${esc(i.destino)}</span></div>
+        <div class="details-grid">
+          <div class="detail-item"><label>Vehículo</label><span class="badge missing">SIN ASIGNAR</span></div>
+          <div class="detail-item"><label>Económico</label><span>${esc(i.eco)}</span></div>
+          <div class="detail-item full-width"><label>Operador Asignado</label><span style="color:var(--danger)">${esc(i.operador)}</span></div>
+          <div class="detail-item full-width"><label>Fecha / Observaciones</label><span>[${esc(i.fecha)}] ${esc(i.observaciones)}</span></div>
         </div>
-        <button class="refresh-btn" onclick="loadLogisticsData()">Actualizar Datos</button>
-    </header>
+      </div>`).join('');
 
-    <!-- BARRA DE FILTRO POR FECHA -->
-    <div class="filter-bar">
-        <div>
-            <label for="dateFilter">📅 SELECCIONAR FECHA DE TURNO (COLUMNA A): </label>
-        </div>
-        <div>
-            <select id="dateFilter" onchange="applyDateFilter()">
-                <option value="ALL">Todas las fechas</option>
-            </select>
-        </div>
-    </div>
+  renderTable('table-route-body', route, 'No hay unidades en ruta actualmente.');
+  renderTable('table-return-body', ret, 'No hay unidades en retorno a CEDIS.');
+  renderTable('table-available-body', avail, 'No hay unidades disponibles por planear.');
+}
 
-    <!-- STATS KPIs -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h3>Total de Servicios</h3>
-            <div class="number" id="kpi-total">0</div>
-        </div>
-        <div class="stat-card success">
-            <h3>Unidades en Ruta</h3>
-            <div class="number" id="kpi-route">0</div>
-        </div>
-        <div class="stat-card warning">
-            <h3>En Retorno a CEDIS</h3>
-            <div class="number" id="kpi-return">0</div>
-        </div>
-        <div class="stat-card success">
-            <h3>Disponibles Planear</h3>
-            <div class="number" id="kpi-available">0</div>
-        </div>
-        <div class="stat-card danger">
-            <h3>Faltantes Asignar</h3>
-            <div class="number" id="kpi-missing">0</div>
-        </div>
-    </div>
+function renderTable(id, items, emptyMsg) {
+  document.getElementById(id).innerHTML = items.length === 0
+    ? `<tr><td colspan="4" class="loading">${emptyMsg}</td></tr>`
+    : items.map(i => `
+      <tr>
+        <td><strong>${esc(i.operador)}</strong></td>
+        <td><span class="badge">${esc(i.marchamos)}</span></td>
+        <td>${esc(i.origen)}</td>
+        <td>${esc(i.destino)}</td>
+      </tr>`).join('');
+}
 
-    <!-- SECCIÓN UNIDADES FALTANTES -->
-    <h2 class="section-title">⚠️ Unidades Faltantes por Asignar Viaje</h2>
-    <div class="grid-container" id="missing-grid">
-        <div class="loading">Conectando con Google Sheets...</div>
-    </div>
-
-    <!-- TABLA 1: EN RUTA -->
-    <h2 class="section-title">🚛 1. Unidades en Ruta (Salida Custodia)</h2>
-    <div class="table-container">
-        <table class="logistics-table">
-            <thead>
-                <tr>
-                    <th>Nombre del Operador</th>
-                    <th>Marchamos</th>
-                    <th>Origen</th>
-                    <th>Destino</th>
-                </tr>
-            </thead>
-            <tbody id="table-route-body">
-                <tr><td colspan="4" class="loading">Cargando datos...</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- TABLA 2: EN RETORNO A CEDIS TULTI -->
-    <h2 class="section-title">🔄 2. Unidades en Retorno a CEDIS Tulti (Regresa Vacío)</h2>
-    <div class="table-container">
-        <table class="logistics-table">
-            <thead>
-                <tr>
-                    <th>Nombre del Operador</th>
-                    <th>Marchamos</th>
-                    <th>Origen</th>
-                    <th>Destino</th>
-                </tr>
-            </thead>
-            <tbody id="table-return-body">
-                <tr><td colspan="4" class="loading">Cargando datos...</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- TABLA 3: UNIDADES DISPONIBLES POR PLANEAR -->
-    <h2 class="section-title">🟢 3. Unidades Disponibles por Planear (Llegada Vacío)</h2>
-    <div class="table-container">
-        <table class="logistics-table">
-            <thead>
-                <tr>
-                    <th>Nombre del Operador</th>
-                    <th>Marchamos</th>
-                    <th>Origen</th>
-                    <th>Destino</th>
-                </tr>
-            </thead>
-            <tbody id="table-available-body">
-                <tr><td colspan="4" class="loading">Cargando datos...</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <script>
-        let allTripsData = [];
-
-        async function loadLogisticsData() {
-            try {
-                const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTXcL9CARshVMzDpyLxyOaY4ryRGRh2vYHdH-9O8u4NaqDRFO9wI3sFsuxmTg04731-dE1ixKrihg5G/pub?gid=1104590225&single=true&output=csv');
-                const text = await response.text();
-
-                if (text.trim().startsWith('<!DOCTYPE html>') || text.includes('<html')) {
-                    throw new Error("El enlace devolvió HTML en lugar de CSV.");
-                }
-
-                parseCSVAndRender(text);
-            } catch (error) {
-                console.error('Error al conectar con Google Sheets:', error);
-                document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger);">Error al leer Google Sheets.</div>';
-            }
-        }
-
-        // Analizador CSV profesional que respeta celdas vacías consecutivas (,,)
-        function parseCSVLine(textLine) {
-            let result = [];
-            let inQuotes = false;
-            let current = '';
-            for (let i = 0; i < textLine.length; i++) {
-                let c = textLine[i];
-                if (c === '"') {
-                    inQuotes = !inQuotes;
-                } else if (c === ',' && !inQuotes) {
-                    result.push(current.trim().replace(/^"|"$/g, ''));
-                    current = '';
-                } else {
-                    current += c;
-                }
-            }
-            result.push(current.trim().replace(/^"|"$/g, ''));
-            return result;
-        }
-
-        function hasValue(val) {
-            if (!val) return false;
-            const cleaned = val.trim();
-            return cleaned !== '' && cleaned !== '-' && cleaned !== 'nan' && cleaned !== 'N/A' && cleaned !== 'S/A';
-        }
-
-        function parseCSVAndRender(text) {
-            const lines = text.split('\n');
-            allTripsData = [];
-            const datesSet = new Set();
-
-            // Empezamos desde la fila 3 (índice 2)
-            for (let i = 2; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-
-                const cols = parseCSVLine(line);
-                if (cols.length < 15) continue;
-
-                const fecha = cols[0] || '';          // Columna A
-                const observaciones = cols[4] || '-'; // Columna E
-                const origen = cols[6] || '';         // Columna G (Origen)
-                const destino = cols[7] || '';        // Columna H (Destino)
-                const eco = cols[11] || '';           // Columna L
-                const operador = cols[12] || '';      // Columna M (Operador)
-                const marchamos = cols[14] || '-';    // Columna O (Marchamos)
-
-                // Horas exactas por columnas reales de Google Sheets
-                const salidaCustodia = cols[18] || ''; // Columna S (En Ruta)
-                const regresaVacio = cols[23] || '';   // Columna X (En Retorno)
-                const llegadaVacio = cols[24] || '';   // Columna Y (Disponibles por planear)
-
-                if (!destino || destino === '' || destino.toLowerCase().includes('destino') || destino.toLowerCase().includes('asignada')) continue;
-
-                if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
-                    datesSet.add(fecha);
-                }
-
-                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
-
-                // LÓGICA ESTRICTA: Solo se asigna a tablas si la columna respectiva tiene hora real
-                let status = 'missing';
-                if (!isMissing) {
-                    if (hasValue(llegadaVacio)) {
-                        status = 'disponible'; // Columna Y (Llegada Vacío) -> Tabla 3
-                    } else if (hasValue(regresaVacio)) {
-                        status = 'retorno';    // Columna X (Regresa Vacío) -> Tabla 2
-                    } else if (hasValue(salidaCustodia)) {
-                        status = 'en-ruta';    // Columna S (Salida Custodia) -> Tabla 1
-                    } else {
-                        status = 'pendiente-ruta'; // Si tiene operador pero aún no marca salida, no satura las tablas de ciclo
-                    }
-                }
-
-                allTripsData.push({
-                    fecha: fecha || 'Sin Fecha',
-                    origen: origen || 'Cedis Tultitlán',
-                    destino: destino,
-                    eco: eco && eco !== '-' ? eco : 'S/A',
-                    operador: isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador,
-                    marchamos: marchamos && marchamos !== '' ? marchamos : '-',
-                    observaciones: observaciones && observaciones !== '' ? observaciones : '-',
-                    status: status
-                });
-            }
-
-            populateDateDropdown(Array.from(datesSet));
-            applyDateFilter();
-        }
-
-        function populateDateDropdown(dates) {
-            const select = document.getElementById('dateFilter');
-            const currentValue = select.value;
-            
-            select.innerHTML = '<option value="ALL">Todas las fechas</option>';
-            
-            dates.sort().forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d;
-                opt.textContent = d;
-                select.appendChild(opt);
-            });
-
-            if (dates.includes(currentValue)) {
-                select.value = currentValue;
-            }
-        }
-
-        function applyDateFilter() {
-            const selectedDate = document.getElementById('dateFilter').value;
-            let filteredData = allTripsData;
-
-            if (selectedDate !== 'ALL') {
-                filteredData = allTripsData.filter(item => item.fecha === selectedDate);
-            }
-
-            renderDashboard(filteredData);
-        }
-
-        function renderDashboard(data) {
-            const total = data.length;
-            const missingList = data.filter(item => item.status === 'missing');
-            const routeList = data.filter(item => item.status === 'en-ruta');
-            const returnList = data.filter(item => item.status === 'retorno');
-            const availableList = data.filter(item => item.status === 'disponible');
-
-            document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-route').innerText = routeList.length;
-            document.getElementById('kpi-return').innerText = returnList.length;
-            document.getElementById('kpi-available').innerText = availableList.length;
-            document.getElementById('kpi-missing').innerText = missingList.length;
-
-            const missingContainer = document.getElementById('missing-grid');
-            missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar para esta fecha.</p>' : '';
-            missingList.forEach(item => {
-                missingContainer.innerHTML += `
-                    <div class="trip-card missing">
-                        <div class="route">
-                            <span>${item.origen}</span>
-                            <span class="arrow">➔</span>
-                            <span>${item.destino}</span>
-                        </div>
-                        <div class="details-grid">
-                            <div class="detail-item"><label>Vehículo</label><span><span class="badge missing">SIN ASIGNAR</span></span></div>
-                            <div class="detail-item"><label>Económico</label><span>${item.eco}</span></div>
-                            <div class="detail-item full-width"><label>Operador Asignado</label><span style="color: var(--danger);">${item.operador}</span></div>
-                            <div class="detail-item full-width"><label>Fecha / Observaciones</label><span>[${item.fecha}] ${item.observaciones}</span></div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            renderTable('table-route-body', routeList, 'No hay unidades en ruta actualmente.');
-            renderTable('table-return-body', returnList, 'No hay unidades en retorno a CEDIS.');
-            renderTable('table-available-body', availableList, 'No hay unidades disponibles por planear.');
-        }
-
-        function renderTable(elementId, items, emptyMessage) {
-            const tbody = document.getElementById(elementId);
-            if (items.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="loading" style="color:var(--text-muted);">${emptyMessage}</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = '';
-            items.forEach(item => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${item.operador}</strong></td>
-                        <td><span class="badge">${item.marchamos}</span></td>
-                        <td>${item.origen}</td>
-                        <td>${item.destino}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        window.onload = loadLogisticsData;
-    </script>
+window.onload = loadLogisticsData;
+</script>
 </body>
 </html>
