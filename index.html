@@ -383,7 +383,7 @@
         </table>
     </div>
 
-    <!-- SCRIPT DE CONEXIÓN Y PROCESAMIENTO CORREGIDO -->
+    <!-- SCRIPT DE CONEXIÓN Y PROCESAMIENTO CORREGIDO (DESDE FILA 3) -->
     <script>
         let allTripsData = [];
 
@@ -412,45 +412,44 @@
             allTripsData = [];
             const datesSet = new Set();
 
-            // Empezamos desde la fila 2 para saltarnos los títulos reales de Google Sheets
+            // Empezamos estrictamente desde la fila 3 (índice 2) hacia abajo
             for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
-                if (!cols || cols.length < 13) continue;
+                if (!cols || cols.length < 25) continue; // Asegurar que tenga todas las columnas hasta la Y
 
-                const fecha = cols[0] ? cols[0].trim() : '';          // Columna A (Fecha)
+                const fecha = cols[0] ? cols[0].trim() : '';          // Columna A
                 const observaciones = cols[4] ? cols[4].trim() : '-'; // Columna E
-                const origen = cols[5] ? cols[5].trim() : '';         // Columna F (Origen)
-                const destino = cols[6] ? cols[6].trim() : '';        // Columna G (Destino)
-                const vehiculo = cols[7] ? cols[7].trim() : '';       // Columna H
-                const marchamos = cols[14] ? cols[14].trim() : '-';   // Columna O (Marchamos)
+                const origen = cols[6] ? cols[6].trim() : '';         // Columna G (Origen)
+                const destino = cols[7] ? cols[7].trim() : '';        // Columna H (Destino)
                 const eco = cols[11] ? cols[11].trim() : '';          // Columna L
                 const operador = cols[12] ? cols[12].trim() : '';     // Columna M (Operador)
+                const marchamos = cols[14] ? cols[14].trim() : '-';   // Columna O (Marchamos)
 
                 // Horas exactas para estatus secuenciales
                 const salidaCustodia = cols[18] ? cols[18].trim() : ''; // Columna S (Salida custodia)
                 const regresaVacio = cols[23] ? cols[23].trim() : '';   // Columna X (Regresa vacio hora)
                 const llegadaVacio = cols[24] ? cols[24].trim() : '';   // Columna Y (Llegada vacio)
 
-                // Validar que no sea fila de títulos rezagada
+                // Omitir filas vacías o basura
                 if (!destino || destino === '' || destino.toLowerCase().includes('destino') || destino.toLowerCase().includes('asignada')) continue;
 
                 if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
                     datesSet.add(fecha);
                 }
 
-                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'S/A');
+                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
 
-                // Lógica secuencial del ciclo de estatus
+                // Lógica secuencial del ciclo de estatus basada en las horas
                 let status = 'missing';
                 if (!isMissing) {
                     if (llegadaVacio && llegadaVacio !== '-' && llegadaVacio !== '') {
-                        status = 'disponible';
+                        status = 'disponible'; // Columna Y llena
                     } else if (regresaVacio && regresaVacio !== '-' && regresaVacio !== '') {
-                        status = 'retorno';
+                        status = 'retorno';    // Columna X llena
                     } else if (salidaCustodia && salidaCustodia !== '-' && salidaCustodia !== '') {
-                        status = 'en-ruta';
+                        status = 'en-ruta';    // Columna S llena
                     } else {
-                        status = 'en-ruta';
+                        status = 'en-ruta';    // Por defecto si tiene operador pero no ha marcado
                     }
                 }
 
@@ -458,7 +457,6 @@
                     fecha: fecha || 'Sin Fecha',
                     origen: origen || 'Cedis Tultitlán',
                     destino: destino,
-                    vehiculo: isMissing ? 'SIN ASIGNAR' : (vehiculo || 'TRACTO CAMION'),
                     eco: eco && eco !== '-' ? eco : 'S/A',
                     operador: isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador,
                     marchamos: marchamos && marchamos !== '' ? marchamos : '-',
