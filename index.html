@@ -283,7 +283,7 @@
         <button class="refresh-btn" onclick="loadLogisticsData()">Actualizar Datos</button>
     </header>
 
-    <!-- BARRA DE FILTRO POR FECHA (COLUMNA A) -->
+    <!-- BARRA DE FILTRO POR FECHA -->
     <div class="filter-bar">
         <div>
             <label for="dateFilter">📅 SELECCIONAR FECHA DE TURNO (COLUMNA A): </label>
@@ -394,15 +394,14 @@
                 parseCSVAndRender(text);
             } catch (error) {
                 console.error('Error al conectar con Google Sheets:', error);
-                document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger);">Error: No se pudo leer el CSV de Google Sheets.</div>';
+                document.getElementById('missing-grid').innerHTML = '<div class="loading" style="color:var(--danger);">Error al leer Google Sheets.</div>';
             }
         }
 
-        // Función auxilar para saber si una celda tiene una hora o dato válido
-        function hasValidValue(val) {
+        function hasValue(val) {
             if (!val) return false;
-            const cleaned = val.trim().toLowerCase();
-            return cleaned !== '' && cleaned !== '-' && cleaned !== 'nan' && cleaned !== 'n/a' && cleaned !== 's/a';
+            const cleaned = val.trim();
+            return cleaned !== '' && cleaned !== '-' && cleaned !== 'nan' && cleaned !== 'N/A' && cleaned !== 'S/A';
         }
 
         function parseCSVAndRender(text) {
@@ -414,23 +413,25 @@
             allTripsData = [];
             const datesSet = new Set();
 
-            // Fila 3 hacia abajo (índice 2)
             for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
-                if (!cols || cols.length < 25) continue;
+                if (!cols || cols.length < 15) continue;
 
-                const fecha = cols[0] ? cols[0].trim() : '';          // Columna A
-                const observaciones = cols[4] ? cols[4].trim() : '-'; // Columna E
-                const origen = cols[6] ? cols[6].trim() : '';         // Columna G (Origen)
-                const destino = cols[7] ? cols[7].trim() : '';        // Columna H (Destino)
-                const eco = cols[11] ? cols[11].trim() : '';          // Columna L
-                const operador = cols[12] ? cols[12].trim() : '';     // Columna M (Operador)
-                const marchamos = cols[14] ? cols[14].trim() : '-';   // Columna O (Marchamos)
+                const fecha = cols[0] ? cols[0].trim() : '';
+                const observaciones = cols[4] ? cols[4].trim() : '-';
+                const origen = cols[6] ? cols[6].trim() : '';
+                const destino = cols[7] ? cols[7].trim() : '';
+                const eco = cols[11] ? cols[11].trim() : '';
+                const operador = cols[12] ? cols[12].trim() : '';
+                const marchamos = cols[14] ? cols[14].trim() : '-';
 
-                // Horas exactas
-                const salidaCustodia = cols[18] ? cols[18].trim() : ''; // Columna S (Salida custodia)
-                const regresaVacio = cols[23] ? cols[23].trim() : '';   // Columna X (Regresa vacio hora)
-                const llegadaVacio = cols[24] ? cols[24].trim() : '';   // Columna Y (Llegada vacio)
+                // Capturamos las columnas de hora dinámicamente según lo que llegue
+                const salidaCustodia = cols[18] ? cols[18].trim() : ''; // Columna S
+                const regresaVacio = cols[23] ? cols[23].trim() : '';   // Columna X
+                const llegadaVacio = cols[24] ? cols[24].trim() : '';   // Columna Y
+
+                // DEPURADOR EN CONSOLA PARA VER QUÉ TRAE CADA FILA EXACTAMENTE
+                console.log(`DEBUG FILA ${i} [${operador}] -> S (Ruta): "${salidaCustodia}" | X (Retorno): "${regresaVacio}" | Y (Disponible): "${llegadaVacio}"`);
 
                 if (!destino || destino === '' || destino.toLowerCase().includes('destino') || destino.toLowerCase().includes('asignada')) continue;
 
@@ -438,19 +439,20 @@
                     datesSet.add(fecha);
                 }
 
-                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
+                const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'S/A');
 
-                // LÓGICA DE ESTATUS SECUENCIAL ESTRICTA
+                // LÓGICA EXPLICITA Y ORDENADA DEL CICLO
                 let status = 'missing';
                 if (!isMissing) {
-                    if (hasValidValue(llegadaVacio)) {
-                        status = 'disponible'; // Solo si Columna Y tiene valor
-                    } else if (hasValidValue(regresaVacio)) {
-                        status = 'retorno';    // Solo si Columna X tiene valor
-                    } else if (hasValidValue(salidaCustodia)) {
-                        status = 'en-ruta';    // Solo si Columna S tiene valor
+                    if (hasValue(llegadaVacio)) {
+                        status = 'disponible';
+                    } else if (hasValue(regresaVacio)) {
+                        status = 'retorno';
+                    } else if (hasValue(salidaCustodia)) {
+                        status = 'en-ruta';
                     } else {
-                        status = 'en-ruta';    // Unidad con operador pero esperando marca en S
+                        // Si tiene operador pero NINGUNA de las 3 columnas de hora tiene datos, por defecto se queda en Ruta o pendiente de salir
+                        status = 'en-ruta';
                     }
                 }
 
