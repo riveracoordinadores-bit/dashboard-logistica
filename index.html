@@ -265,10 +265,6 @@
             color: #f87171;
         }
 
-        .full-width {
-            grid-column: span 2;
-        }
-
         .loading {
             text-align: center;
             padding: 2rem;
@@ -383,7 +379,6 @@
         </table>
     </div>
 
-    <!-- SCRIPT DE CONEXIÓN Y PROCESAMIENTO CORREGIDO (DESDE FILA 3) -->
     <script>
         let allTripsData = [];
 
@@ -403,6 +398,13 @@
             }
         }
 
+        // Función auxilar para saber si una celda tiene una hora o dato válido
+        function hasValidValue(val) {
+            if (!val) return false;
+            const cleaned = val.trim().toLowerCase();
+            return cleaned !== '' && cleaned !== '-' && cleaned !== 'nan' && cleaned !== 'n/a' && cleaned !== 's/a';
+        }
+
         function parseCSVAndRender(text) {
             const rows = text.split('\n').map(row => {
                 const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
@@ -412,10 +414,10 @@
             allTripsData = [];
             const datesSet = new Set();
 
-            // Empezamos estrictamente desde la fila 3 (índice 2) hacia abajo
+            // Fila 3 hacia abajo (índice 2)
             for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
-                if (!cols || cols.length < 25) continue; // Asegurar que tenga todas las columnas hasta la Y
+                if (!cols || cols.length < 25) continue;
 
                 const fecha = cols[0] ? cols[0].trim() : '';          // Columna A
                 const observaciones = cols[4] ? cols[4].trim() : '-'; // Columna E
@@ -425,12 +427,11 @@
                 const operador = cols[12] ? cols[12].trim() : '';     // Columna M (Operador)
                 const marchamos = cols[14] ? cols[14].trim() : '-';   // Columna O (Marchamos)
 
-                // Horas exactas para estatus secuenciales
+                // Horas exactas
                 const salidaCustodia = cols[18] ? cols[18].trim() : ''; // Columna S (Salida custodia)
                 const regresaVacio = cols[23] ? cols[23].trim() : '';   // Columna X (Regresa vacio hora)
                 const llegadaVacio = cols[24] ? cols[24].trim() : '';   // Columna Y (Llegada vacio)
 
-                // Omitir filas vacías o basura
                 if (!destino || destino === '' || destino.toLowerCase().includes('destino') || destino.toLowerCase().includes('asignada')) continue;
 
                 if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
@@ -439,17 +440,17 @@
 
                 const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
 
-                // Lógica secuencial del ciclo de estatus basada en las horas
+                // LÓGICA DE ESTATUS SECUENCIAL ESTRICTA
                 let status = 'missing';
                 if (!isMissing) {
-                    if (llegadaVacio && llegadaVacio !== '-' && llegadaVacio !== '') {
-                        status = 'disponible'; // Columna Y llena
-                    } else if (regresaVacio && regresaVacio !== '-' && regresaVacio !== '') {
-                        status = 'retorno';    // Columna X llena
-                    } else if (salidaCustodia && salidaCustodia !== '-' && salidaCustodia !== '') {
-                        status = 'en-ruta';    // Columna S llena
+                    if (hasValidValue(llegadaVacio)) {
+                        status = 'disponible'; // Solo si Columna Y tiene valor
+                    } else if (hasValidValue(regresaVacio)) {
+                        status = 'retorno';    // Solo si Columna X tiene valor
+                    } else if (hasValidValue(salidaCustodia)) {
+                        status = 'en-ruta';    // Solo si Columna S tiene valor
                     } else {
-                        status = 'en-ruta';    // Por defecto si tiene operador pero no ha marcado
+                        status = 'en-ruta';    // Unidad con operador pero esperando marca en S
                     }
                 }
 
