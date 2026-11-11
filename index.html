@@ -398,6 +398,26 @@
             }
         }
 
+        // Analizador CSV profesional que respeta celdas vacías consecutivas (,,)
+        function parseCSVLine(textLine) {
+            let result = [];
+            let inQuotes = false;
+            let current = '';
+            for (let i = 0; i < textLine.length; i++) {
+                let c = textLine[i];
+                if (c === '"') {
+                    inQuotes = !inQuotes;
+                } else if (c === ',' && !inQuotes) {
+                    result.push(current.trim().replace(/^"|"$/g, ''));
+                    current = '';
+                } else {
+                    current += c;
+                }
+            }
+            result.push(current.trim().replace(/^"|"$/g, ''));
+            return result;
+        }
+
         function hasValue(val) {
             if (!val) return false;
             const cleaned = val.trim();
@@ -405,30 +425,30 @@
         }
 
         function parseCSVAndRender(text) {
-            const rows = text.split('\n').map(row => {
-                const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
-                return matches.map(val => val.replace(/^"|"$/g, '').trim());
-            });
-
+            const lines = text.split('\n');
             allTripsData = [];
             const datesSet = new Set();
 
-            for (let i = 2; i < rows.length; i++) {
-                const cols = rows[i];
-                if (!cols || cols.length < 25) continue;
+            // Empezamos desde la fila 3 (índice 2)
+            for (let i = 2; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
 
-                const fecha = cols[0] ? cols[0].trim() : '';
-                const observaciones = cols[4] ? cols[4].trim() : '-';
-                const origen = cols[6] ? cols[6].trim() : '';
-                const destino = cols[7] ? cols[7].trim() : '';
-                const eco = cols[11] ? cols[11].trim() : '';
-                const operador = cols[12] ? cols[12].trim() : '';
-                const marchamos = cols[14] ? cols[14].trim() : '-';
+                const cols = parseCSVLine(line);
+                if (cols.length < 15) continue;
 
-                // Horas exactas
-                const salidaCustodia = cols[18] ? cols[18].trim() : ''; // Columna S
-                const regresaVacio = cols[23] ? cols[23].trim() : '';   // Columna X
-                const llegadaVacio = cols[24] ? cols[24].trim() : '';   // Columna Y
+                const fecha = cols[0] || '';          // Columna A
+                const observaciones = cols[4] || '-'; // Columna E
+                const origen = cols[6] || '';         // Columna G (Origen)
+                const destino = cols[7] || '';        // Columna H (Destino)
+                const eco = cols[11] || '';           // Columna L
+                const operador = cols[12] || '';      // Columna M (Operador)
+                const marchamos = cols[14] || '-';    // Columna O (Marchamos)
+
+                // Horas exactas por columnas reales de Google Sheets
+                const salidaCustodia = cols[18] || ''; // Columna S (En Ruta)
+                const regresaVacio = cols[23] || '';   // Columna X (En Retorno)
+                const llegadaVacio = cols[24] || '';   // Columna Y (Disponibles por planear)
 
                 if (!destino || destino === '' || destino.toLowerCase().includes('destino') || destino.toLowerCase().includes('asignada')) continue;
 
@@ -438,32 +458,30 @@
 
                 const isMissing = (!operador || operador === '-' || operador === 'nan' || operador === '' || operador === 'S/A' || !eco || eco === '-' || eco === 'nan' || eco === '' || eco === 'N/A' || eco === 'S/A');
 
-                // LÓGICA SECUENCIAL ESTRICTA (Evaluando de fin a inicio del ciclo)
+                // LÓGICA ESTRICTA: Solo se asigna a tablas si la columna respectiva tiene hora real
                 let status = 'missing';
                 if (!isMissing) {
                     if (hasValue(llegadaVacio)) {
-                        status = 'disponible'; // Columna Y llena -> Tabla 3
+                        status = 'disponible'; // Columna Y (Llegada Vacío) -> Tabla 3
                     } else if (hasValue(regresaVacio)) {
-                        status = 'retorno';    // Columna X llena -> Tabla 2
+                        status = 'retorno';    // Columna X (Regresa Vacío) -> Tabla 2
                     } else if (hasValue(salidaCustodia)) {
-                        status = 'en-ruta';    // Columna S llena -> Tabla 1
+                        status = 'en-ruta';    // Columna S (Salida Custodia) -> Tabla 1
                     } else {
-                        status = 'ignorar';    // Si tiene operador pero ninguna hora está llena todavía, no va en ninguna de las 3 tablas de movimiento
+                        status = 'pendiente-ruta'; // Si tiene operador pero aún no marca salida, no satura las tablas de ciclo
                     }
                 }
 
-                if (status !== 'ignorar') {
-                    allTripsData.push({
-                        fecha: fecha || 'Sin Fecha',
-                        origen: origen || 'Cedis Tultitlán',
-                        destino: destino,
-                        eco: eco && eco !== '-' ? eco : 'S/A',
-                        operador: isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador,
-                        marchamos: marchamos && marchamos !== '' ? marchamos : '-',
-                        observaciones: observaciones && observaciones !== '' ? observaciones : '-',
-                        status: status
-                    });
-                }
+                allTripsData.push({
+                    fecha: fecha || 'Sin Fecha',
+                    origen: origen || 'Cedis Tultitlán',
+                    destino: destino,
+                    eco: eco && eco !== '-' ? eco : 'S/A',
+                    operador: isMissing ? 'PENDIENTE DE ASIGNACIÓN' : operador,
+                    marchamos: marchamos && marchamos !== '' ? marchamos : '-',
+                    observaciones: observaciones && observaciones !== '' ? observaciones : '-',
+                    status: status
+                });
             }
 
             populateDateDropdown(Array.from(datesSet));
