@@ -16,7 +16,6 @@
             --danger: #ef4444;
             --border: #334155;
             --input-bg: #0f172a;
-            --route-bg: rgba(255, 255, 255, 0.03);
             --missing-bg: #2a1215;
         }
 
@@ -384,7 +383,7 @@
         </table>
     </div>
 
-    <!-- SCRIPT DE CONEXIÓN Y PROCESAMIENTO -->
+    <!-- SCRIPT DE CONEXIÓN Y PROCESAMIENTO CORREGIDO -->
     <script>
         let allTripsData = [];
 
@@ -413,25 +412,27 @@
             allTripsData = [];
             const datesSet = new Set();
 
+            // Empezamos desde la fila 2 para saltarnos los títulos reales de Google Sheets
             for (let i = 2; i < rows.length; i++) {
                 const cols = rows[i];
                 if (!cols || cols.length < 13) continue;
 
                 const fecha = cols[0] ? cols[0].trim() : '';          // Columna A (Fecha)
                 const observaciones = cols[4] ? cols[4].trim() : '-'; // Columna E
-                const origen = cols[5] ? cols[5].trim() : '';         // Columna F
-                const destino = cols[6] ? cols[6].trim() : '';        // Columna G
+                const origen = cols[5] ? cols[5].trim() : '';         // Columna F (Origen)
+                const destino = cols[6] ? cols[6].trim() : '';        // Columna G (Destino)
                 const vehiculo = cols[7] ? cols[7].trim() : '';       // Columna H
                 const marchamos = cols[14] ? cols[14].trim() : '-';   // Columna O (Marchamos)
                 const eco = cols[11] ? cols[11].trim() : '';          // Columna L
                 const operador = cols[12] ? cols[12].trim() : '';     // Columna M (Operador)
 
-                // Horas para estatus secuenciales
+                // Horas exactas para estatus secuenciales
                 const salidaCustodia = cols[18] ? cols[18].trim() : ''; // Columna S (Salida custodia)
                 const regresaVacio = cols[23] ? cols[23].trim() : '';   // Columna X (Regresa vacio hora)
                 const llegadaVacio = cols[24] ? cols[24].trim() : '';   // Columna Y (Llegada vacio)
 
-                if (!destino || destino === '' || destino.toLowerCase().includes('destino')) continue;
+                // Validar que no sea fila de títulos rezagada
+                if (!destino || destino === '' || destino.toLowerCase().includes('destino') || destino.toLowerCase().includes('asignada')) continue;
 
                 if (fecha && fecha !== '-' && !fecha.toLowerCase().includes('fecha')) {
                     datesSet.add(fecha);
@@ -449,7 +450,7 @@
                     } else if (salidaCustodia && salidaCustodia !== '-' && salidaCustodia !== '') {
                         status = 'en-ruta';
                     } else {
-                        status = 'en-ruta'; // Por defecto si tiene operador asignado
+                        status = 'en-ruta';
                     }
                 }
 
@@ -506,14 +507,12 @@
             const returnList = data.filter(item => item.status === 'retorno');
             const availableList = data.filter(item => item.status === 'disponible');
 
-            // Actualizar KPIs
             document.getElementById('kpi-total').innerText = total;
             document.getElementById('kpi-route').innerText = routeList.length;
             document.getElementById('kpi-return').innerText = returnList.length;
             document.getElementById('kpi-available').innerText = availableList.length;
             document.getElementById('kpi-missing').innerText = missingList.length;
 
-            // Renderizar Faltantes (Tarjetas)
             const missingContainer = document.getElementById('missing-grid');
             missingContainer.innerHTML = missingList.length === 0 ? '<p style="color:var(--text-muted);">No hay unidades pendientes de asignar para esta fecha.</p>' : '';
             missingList.forEach(item => {
@@ -534,11 +533,8 @@
                 `;
             });
 
-            // Renderizar Tabla 1: En Ruta
             renderTable('table-route-body', routeList, 'No hay unidades en ruta actualmente.');
-            // Renderizar Tabla 2: En Retorno
             renderTable('table-return-body', returnList, 'No hay unidades en retorno a CEDIS.');
-            // Renderizar Tabla 3: Disponibles
             renderTable('table-available-body', availableList, 'No hay unidades disponibles por planear.');
         }
 
